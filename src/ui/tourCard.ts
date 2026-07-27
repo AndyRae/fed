@@ -79,7 +79,8 @@ export function startTourCard(root: HTMLElement, options: TourCardOptions): Tour
     ),
     el("div", { class: "fsa-tour-card__controls" }, prevBtn, playPauseBtn, nextBtn, progress, exitBtn),
   );
-  root.append(card);
+  const layer = el("div", { id: "fsa-tour-layer" }, card);
+  root.append(layer);
   document.body.classList.add("fsa-touring");
 
   function renderProgress(): void {
@@ -162,7 +163,7 @@ export function startTourCard(root: HTMLElement, options: TourCardOptions): Tour
     clearTimer();
     window.removeEventListener("keydown", onKeydown);
     document.body.classList.remove("fsa-touring");
-    card.remove();
+    layer.remove();
   }
 
   return { dispose };
