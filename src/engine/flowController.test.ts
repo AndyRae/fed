@@ -241,3 +241,47 @@ describe("startFromCurrentEvents", () => {
     expect(Math.hypot(ferryB.position.x - dockB.x, ferryB.position.z - dockB.z)).toBeGreaterThan(0);
   });
 });
+
+describe("an island's ferry departing again before its previous trip finished", () => {
+  it("follows only the newest departure — an older, further-along tween must not keep overwriting the newer one's position", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }], pollIntervalTicks: 1 });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 1); // t1 collected
+    // t2 is submitted only now, after t1's poll — otherwise the same poll
+    // would collect both at once and there would be nothing left to test.
+    state = submitTask(state, { id: "t2", projectId: "p1", treId: "tre-a" });
+
+    let current = state;
+    createFlowController(host, islands, () => current);
+    const ferry = (() => {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "FERRY") found = o;
+      });
+      return found!;
+    })();
+    const dock = islands.get("tre-a")!.dock;
+
+    // First tween well under way (elapsed 0.5s of a 3s trip — noticeably off the dock).
+    frame(0.5);
+
+    // A second departure fires on the same island while the first is still
+    // mid-flight, and this same frame both processes the new event and
+    // advances by a tiny 0.01s.
+    current = tick(current, 1); // t2 collected
+    frame(0.01);
+
+    // If the fix is working, only the brand-new tween (elapsed 0.01s of 3s)
+    // is driving the mesh, so it has barely left the dock. If the old,
+    // further-along tween (elapsed 0.51s) were still also writing this
+    // mesh's position every frame, it would be several units further out
+    // — this is the concrete, measurable difference the fix produces.
+    const displacementFromDock = Math.hypot(ferry.position.x - dock.x, ferry.position.z - dock.z);
+    expect(displacementFromDock).toBeLessThan(1);
+  });
+});
