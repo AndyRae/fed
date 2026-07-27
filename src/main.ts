@@ -1,8 +1,8 @@
 import "./ui/styles.css";
 
-import type { TreId } from "./core/types.ts";
+import type { SimState, TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
-import { createFlowController } from "./engine/flowController.ts";
+import { createFlowController, type FlowController } from "./engine/flowController.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
@@ -51,7 +51,7 @@ engine.scene.add(buildWorld(currentState));
 // resolver, so a TRE's rendered position always matches whichever one is
 // currently addressing it — see world.ts's computeIslandGeometries doc.
 const islandGeometries = computeIslandGeometries(DEMO_TRES);
-const flowController = createFlowController(engine, islandGeometries, () => currentState);
+let flowController: FlowController = createFlowController(engine, islandGeometries, () => currentState);
 
 /**
  * The click-to-decide UI for Gate 1/Gate 2 doesn't exist yet — this
@@ -101,22 +101,41 @@ function pauseAmbientDemo(): void {
 }
 resumeAmbientDemo();
 
+const CAMERA_FLIGHT_SECONDS = 1.5;
+
 /**
  * Starts a tour: pauses the ambient demo and free-roam camera controls so
- * the tour card's cuts aren't fighting either one, and hands the camera to
- * the tour card until it's dismissed. Live ferry/crate motion driven by a
- * tour's own events (rather than the ambient demo's) is a follow-up — this
- * pass wires the camera and narration.
+ * the tour card's cuts aren't fighting either one, and swaps the ambient
+ * flow controller for one scoped to the tour's own precomputed timeline —
+ * two flow controllers must never coexist, or the same TRE would get two
+ * overlapping ferry meshes. `tourState` is set synchronously by
+ * onStateChange during the tour card's first render, before this function
+ * returns and before any animation frame can run the tour flow controller's
+ * getState — see the comment below for why the `!` is safe.
  */
 function startTour(tour: Tour): void {
   pauseAmbientDemo();
   cameraRig.controls.enabled = false;
+  flowController.dispose();
+
+  let tourState: SimState | null = null;
+  const tourFlowController = createFlowController(engine, islandGeometries, () => tourState!);
+
   startTourCard(document.body, {
     tour,
     islands: islandGeometries,
-    onCameraPose: (pose) => cameraRig.setPose(pose),
+    onCameraPose: (pose) => cameraRig.flyTo(pose, CAMERA_FLIGHT_SECONDS),
+    onStateChange: (state) => {
+      tourState = state;
+    },
     onExit: () => {
+      tourFlowController.dispose();
       cameraRig.controls.enabled = true;
+      // Recreate against the ambient state's current history so it doesn't
+      // replay every ferry/crate departure that already happened.
+      flowController = createFlowController(engine, islandGeometries, () => currentState, {
+        startFromCurrentEvents: true,
+      });
       resumeAmbientDemo();
     },
   });
@@ -133,7 +152,7 @@ declare global {
     ARCHIPELAGO: {
       readonly sim: typeof currentState;
       readonly cameraRig: typeof cameraRig;
-      readonly flowController: typeof flowController;
+      readonly flowController: FlowController;
       readonly engine: typeof engine;
       readonly tours: {
         journeyOfATaskTour: typeof journeyOfATaskTour;
@@ -149,7 +168,9 @@ window.ARCHIPELAGO = {
     return currentState;
   },
   cameraRig,
-  flowController,
+  get flowController() {
+    return flowController;
+  },
   engine,
   tours: { journeyOfATaskTour, theResultThatNeverLeftTour, playTour },
 };

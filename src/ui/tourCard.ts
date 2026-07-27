@@ -1,4 +1,4 @@
-import type { TreId } from "../core/types.ts";
+import type { SimState, TreId } from "../core/types.ts";
 import type { CameraPoseVec } from "../engine/cameraRig.ts";
 import type { IslandGeometry } from "../world/layout.ts";
 import { resolveCameraPose } from "./cameraPoses.ts";
@@ -19,9 +19,10 @@ import type { Tour } from "./tourTypes.ts";
  * The lower-third narration card: one chapter at a time, dual register
  * (plain always visible, technical detail behind a native <details>
  * disclosure), auto-advancing but always interruptible — see CLAUDE.md
- * "Tour mechanism". Camera cuts are instant, which is also the correct
- * `prefers-reduced-motion` behaviour, not just the simplest one to build
- * first; animated camera flight between stops is a later addition.
+ * "Tour mechanism". This module doesn't animate anything itself — it hands
+ * each stop's resolved camera pose and precomputed sim state to the caller
+ * via callbacks, so main.ts decides how the camera moves and what drives
+ * ferry/crate motion while touring.
  */
 const STOP_DURATION_MS = 9000;
 
@@ -29,6 +30,8 @@ export interface TourCardOptions {
   readonly tour: Tour;
   readonly islands: ReadonlyMap<TreId, IslandGeometry>;
   readonly onCameraPose: (pose: CameraPoseVec) => void;
+  /** Fired whenever the displayed stop changes, with that stop's precomputed SimState — lets the caller drive tour-scoped ferry/crate animation. */
+  readonly onStateChange: (state: SimState) => void;
   readonly onExit: () => void;
 }
 
@@ -94,7 +97,7 @@ export function startTourCard(root: HTMLElement, options: TourCardOptions): Tour
   }
 
   function render(): void {
-    const { stop } = currentStop(position);
+    const { stop, state } = currentStop(position);
     setText(idxN, String(position.index + 1));
     setText(idxOf, `/ ${stopCount(position)}`);
     setText(title, stop.title);
@@ -105,6 +108,7 @@ export function startTourCard(root: HTMLElement, options: TourCardOptions): Tour
     nextBtn.disabled = isAtEnd(position);
     setText(playPauseBtn, playing ? "⏸ Pause" : "▶ Play");
     options.onCameraPose(resolveCameraPose(stop.cameraPose, options.islands));
+    options.onStateChange(state);
   }
 
   function clearTimer(): void {
