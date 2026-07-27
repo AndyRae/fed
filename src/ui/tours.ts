@@ -23,7 +23,7 @@ export const journeyOfATaskTour: Tour = {
   stops: [
     {
       id: "submit-project",
-      cameraPose: { lookAtZoneId: "mainland" },
+      cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-diabetes-cohort" },
       narration: {
         plain:
@@ -43,7 +43,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "submit-task",
-      cameraPose: { lookAtZoneId: "mainland" },
+      cameraPose: { kind: "mainland" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
         plain:
@@ -58,7 +58,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "gate-1-approval",
-      cameraPose: { lookAtZoneId: "tre-a-interior" },
+      cameraPose: { kind: "treGate1", treId: "tre-a" },
       focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
         plain: "The harbourmaster of the island decides: yes, this project may run here.",
@@ -77,7 +77,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "ferry-collects",
-      cameraPose: { lookAtZoneId: "sea" },
+      cameraPose: { kind: "sea", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
         plain:
@@ -89,7 +89,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "workshop-executes",
-      cameraPose: { lookAtZoneId: "tre-a-interior" },
+      cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
         plain: "Inside the wall, the workshop starts the container and runs it.",
@@ -99,7 +99,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "sealed-crate",
-      cameraPose: { lookAtZoneId: "tre-a-interior" },
+      cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "The work finishes and is sealed into a crate. Nothing is released yet.",
@@ -110,7 +110,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "gate-2-review",
-      cameraPose: { lookAtZoneId: "customs" },
+      cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "A person at the customs hall inspects the sealed crate and decides to release it.",
@@ -124,7 +124,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "release",
-      cameraPose: { lookAtZoneId: "customs" },
+      cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "The crate is released and can now travel back to the researcher.",
@@ -134,7 +134,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "aggregation-at-the-quay",
-      cameraPose: { lookAtZoneId: "mainland" },
+      cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-diabetes-cohort" },
       narration: {
         plain:
@@ -159,7 +159,7 @@ export const theResultThatNeverLeftTour: Tour = {
   stops: [
     {
       id: "submit-project",
-      cameraPose: { lookAtZoneId: "mainland" },
+      cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-imaging-study" },
       narration: {
         plain: "A researcher submits a project proposal to a single island TRE (Trusted Research Environment).",
@@ -177,7 +177,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "submit-task",
-      cameraPose: { lookAtZoneId: "mainland" },
+      cameraPose: { kind: "mainland" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
         plain: "The researcher hands over the container that will run inside the island, if approved.",
@@ -190,7 +190,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "gate-1-approval",
-      cameraPose: { lookAtZoneId: "tre-a-interior" },
+      cameraPose: { kind: "treGate1", treId: "tre-a" },
       focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
         plain: "The harbourmaster approves the project. It will be allowed to run.",
@@ -208,7 +208,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "ferry-collects",
-      cameraPose: { lookAtZoneId: "sea" },
+      cameraPose: { kind: "sea", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
         plain: "The island's ferry leaves, collects the approved container, and returns.",
@@ -218,7 +218,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "workshop-executes",
-      cameraPose: { lookAtZoneId: "tre-a-interior" },
+      cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
         plain: "The workshop runs the container to completion.",
@@ -228,7 +228,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "sealed-crate",
-      cameraPose: { lookAtZoneId: "tre-a-interior" },
+      cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "The finished work is sealed into a crate and held at customs, awaiting a decision.",
@@ -238,7 +238,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "gate-2-refuses",
-      cameraPose: { lookAtZoneId: "customs" },
+      cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "The customs inspector examines the crate and refuses it. It will not leave.",
@@ -252,7 +252,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "crate-retained",
-      cameraPose: { lookAtZoneId: "customs" },
+      cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain:

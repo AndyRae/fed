@@ -26,13 +26,20 @@ export type SimDirective =
   | { readonly kind: "tick"; readonly ticks: number };
 
 /**
- * Where the camera looks. Placeholder ahead of `src/engine`: references a
- * zone id from `src/world/layout.ts` rather than a real vector, since no
- * geometry exists yet this session.
+ * Where the camera looks, as a semantic reference rather than raw
+ * coordinates — tours stay data, geometry stays owned by
+ * `src/world/layout.ts`. `src/ui/cameraPoses.ts` resolves one of these
+ * against a real island-geometry map into an actual position/target.
  */
-export interface CameraPose {
-  readonly lookAtZoneId: string;
-}
+export type CameraPose =
+  | { readonly kind: "overview" }
+  | { readonly kind: "mainland" }
+  | { readonly kind: "customs" }
+  | { readonly kind: "sea"; readonly treId: TreId }
+  | { readonly kind: "tre"; readonly treId: TreId }
+  | { readonly kind: "treGate1"; readonly treId: TreId }
+  | { readonly kind: "treWorkshop"; readonly treId: TreId }
+  | { readonly kind: "treVault"; readonly treId: TreId };
 
 export type FocusEntity =
   | { readonly kind: "none" }
