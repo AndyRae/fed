@@ -90,6 +90,10 @@ function buildWireframe(object: THREE.Object3D, opacity: number): THREE.Line | n
 export function createPicker(options: PickerOptions): PickerHandle {
   const { engine, root } = options;
   const raycaster = new THREE.Raycaster();
+  // Route lines (src/world/routes.ts) are zero-width polylines — the
+  // default line-picking threshold is too tight to click reliably at this
+  // world's camera distances, so widen it well beyond a mesh's own bounds.
+  raycaster.params.Line = { threshold: 2.5 };
   const pointerNdc = new THREE.Vector2();
   const highlightGroup = new THREE.Group();
   engine.scene.add(highlightGroup);

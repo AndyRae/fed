@@ -3,8 +3,15 @@ import { theme } from "../core/theme.ts";
 import type { TreId } from "../core/types.ts";
 import { egressPath, ferryPath, type IslandGeometry, type Vec3 } from "./layout.ts";
 
-/** Just above the sea surface — reads like a shipping lane marked on a chart, not the exact altitude a ferry or crate flies at. */
-const ROUTE_HEIGHT = 0.15;
+/**
+ * Above the sea surface — reads like a shipping lane marked on a chart,
+ * not the exact altitude a ferry or crate travels at. High enough that a
+ * ray toward the line and a ray toward the sea plane underneath it
+ * resolve to clearly different hit distances, so the line is reliably
+ * the nearer (and thus pickable) hit rather than a coin-flip against the
+ * sea a hair's-width beneath it.
+ */
+const ROUTE_HEIGHT = 0.9;
 
 function buildRouteLine(path: readonly Vec3[], color: number, treId: TreId, kind: string): THREE.Line {
   const points = path.map((p) => new THREE.Vector3(p.x, p.y + ROUTE_HEIGHT, p.z));
