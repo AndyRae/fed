@@ -97,4 +97,14 @@ describe("buildIsland", () => {
     const dz = airlock.position.z - dock.position.z;
     expect(Math.hypot(dx, dz)).toBeGreaterThan(0.5);
   });
+
+  it("gives the island a label anchor above its centre, with no geometry of its own to be picked", () => {
+    const island = buildIsland(geometry, tre);
+    const anchor = findByKind(island, "TRE_LABEL_ANCHOR")!;
+    expect(anchor.position.x).toBeCloseTo(geometry.center.x, 5);
+    expect(anchor.position.z).toBeCloseTo(geometry.center.z, 5);
+    expect(anchor.position.y).toBeGreaterThan(0);
+    expect(anchor).not.toBeInstanceOf(THREE.Mesh);
+    expect(anchor.userData.treId).toBe("tre-a");
+  });
 });

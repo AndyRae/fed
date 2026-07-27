@@ -136,5 +136,14 @@ export function buildIsland(geometry: IslandGeometry, tre: Tre): THREE.Object3D 
   airlock.userData.treId = tre.id;
   group.add(airlock);
 
+  // Invisible — no geometry, so it's never raycast-pickable itself — just an
+  // elevated anchor point for this island's own floating name label, well
+  // above the vault/workshop/gate markers so it reads as "the whole island".
+  const labelAnchor = new THREE.Object3D();
+  labelAnchor.position.set(geometry.center.x, SEA_LEVEL_Y + ISLAND_HEIGHT + 7, geometry.center.z);
+  labelAnchor.userData.kind = "TRE_LABEL_ANCHOR";
+  labelAnchor.userData.treId = tre.id;
+  group.add(labelAnchor);
+
   return group;
 }

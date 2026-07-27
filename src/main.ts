@@ -76,11 +76,34 @@ const treNames = new Map(DEMO_TRES.map((t) => [t.id, t.name]));
  * always-on label — with this many of them on screen at once, that would
  * be clutter rather than explanation.
  */
-const LABELLED_KINDS = new Set(["VAULT", "WORKSHOP", "GATE1_HARBOURMASTER", "GATE2_INSPECTOR", "CUSTOMS_HALL", "MAINLAND_DOCK"]);
+const LABELLED_KINDS = new Set([
+  "VAULT",
+  "WORKSHOP",
+  "GATE1_HARBOURMASTER",
+  "EGRESS_AIRLOCK",
+  "GATE2_INSPECTOR",
+  "CUSTOMS_HALL",
+  "MAINLAND_DOCK",
+]);
 const labelTargets: { object: typeof worldGroup; text: string }[] = [];
 worldGroup.traverse((object) => {
   const kind = object.userData.kind as string | undefined;
-  if (!kind || !LABELLED_KINDS.has(kind)) return;
+  if (!kind) return;
+
+  // The whole-island and whole-mainland labels use each TRE's real name
+  // rather than explanations.ts's generic title, so "Isle of Ailsa" reads
+  // above the island itself and "The mainland" above the mainland.
+  if (kind === "TRE_LABEL_ANCHOR") {
+    const treId = object.userData.treId as TreId;
+    labelTargets.push({ object, text: treNames.get(treId) ?? treId });
+    return;
+  }
+  if (kind === "MAINLAND_LABEL_ANCHOR") {
+    labelTargets.push({ object, text: explanationForKind("MAINLAND_LAND")?.title ?? "The mainland" });
+    return;
+  }
+
+  if (!LABELLED_KINDS.has(kind)) return;
   const explanation = explanationForKind(kind);
   if (!explanation) return;
   labelTargets.push({ object, text: explanation.title });

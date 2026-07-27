@@ -79,5 +79,12 @@ export function buildMainland(): THREE.Object3D {
   dock.userData.kind = "MAINLAND_DOCK";
   group.add(dock);
 
+  // Invisible — no geometry, so it's never raycast-pickable itself — just
+  // an elevated anchor for the mainland's own floating label.
+  const labelAnchor = new THREE.Object3D();
+  labelAnchor.position.set(mainlandGeometry.center.x, SEA_LEVEL_Y + MAINLAND_HEIGHT + 8, mainlandGeometry.center.z);
+  labelAnchor.userData.kind = "MAINLAND_LABEL_ANCHOR";
+  group.add(labelAnchor);
+
   return group;
 }

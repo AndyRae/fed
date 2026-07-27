@@ -30,4 +30,12 @@ describe("buildMainland", () => {
     expect(dock.position.x).toBeCloseTo(mainlandGeometry.quayDock.x, 5);
     expect(dock.position.z).toBeCloseTo(mainlandGeometry.quayDock.z, 5);
   });
+
+  it("gives the mainland a label anchor above its centre, with no geometry of its own to be picked", () => {
+    const anchor = findByKind(buildMainland(), "MAINLAND_LABEL_ANCHOR")!;
+    expect(anchor.position.x).toBeCloseTo(mainlandGeometry.center.x, 5);
+    expect(anchor.position.z).toBeCloseTo(mainlandGeometry.center.z, 5);
+    expect(anchor.position.y).toBeGreaterThan(0);
+    expect(anchor).not.toBeInstanceOf(THREE.Mesh);
+  });
 });
