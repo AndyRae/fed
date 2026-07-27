@@ -121,5 +121,20 @@ export function buildIsland(geometry: IslandGeometry, tre: Tre): THREE.Object3D 
   dock.userData.treId = tre.id;
   group.add(dock);
 
+  // Faces outward through the wall at the airlock's own point on the
+  // boundary — a ring you could plausibly pass a crate through, standing
+  // upright rather than lying flat like the wall's own torus.
+  const airlockDirX = geometry.egressAirlock.x - geometry.center.x;
+  const airlockDirZ = geometry.egressAirlock.z - geometry.center.z;
+  const airlock = new THREE.Mesh(
+    new THREE.TorusGeometry(1.1, 0.3, 10, 28),
+    new THREE.MeshStandardMaterial({ color: theme.trust.airlock, roughness: 0.4, metalness: 0.35 }),
+  );
+  airlock.rotation.y = Math.atan2(airlockDirX, airlockDirZ);
+  airlock.position.set(geometry.egressAirlock.x, SEA_LEVEL_Y + ISLAND_HEIGHT + 1.1, geometry.egressAirlock.z);
+  airlock.userData.kind = "EGRESS_AIRLOCK";
+  airlock.userData.treId = tre.id;
+  group.add(airlock);
+
   return group;
 }

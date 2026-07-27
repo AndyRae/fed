@@ -23,10 +23,13 @@ export const ENTITY_KINDS = [
   "WORKSHOP",
   "GATE1_HARBOURMASTER",
   "DOCK",
+  "EGRESS_AIRLOCK",
   "FERRY",
   "CRATE",
   "CUSTOMS_HALL",
   "GATE2_INSPECTOR",
+  "FERRY_ROUTE",
+  "EGRESS_ROUTE",
 ] as const;
 
 export type EntityKind = (typeof ENTITY_KINDS)[number];
@@ -87,9 +90,15 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   },
   DOCK: {
     title: "The ferry's dock",
-    plain: "The one place this island's wall may be crossed — by its own ferry, departing and returning.",
+    plain: "Where this island's own ferry departs and returns, bringing an approved container in from the mainland.",
     detail:
-      "The TRE agent's departure point. The ferry leaves from here, collects an approved container from the mainland, and returns here — the outbound-only fetch.",
+      "The TRE agent's departure point. The ferry leaves from here, collects an approved container from the mainland, and returns here — the outbound-only fetch. Sealed crates leave by a different point on the wall: the egress airlock.",
+  },
+  EGRESS_AIRLOCK: {
+    title: "The egress airlock",
+    plain: "Every sealed crate passes through here before it may leave the island — an automated technical check, separate from the human decision that comes next.",
+    detail:
+      "The TRE's own local disclosure-control check, built into the wall (docs.federated-analytics.ac.uk describes this as part of the weave: \"essential disclosure control processes within TREs\"). It is not a third gate and makes no governance decision — the sole disclosure decision on this crate is still Gate 2, made by the customs inspector.",
   },
   FERRY: {
     title: "The ferry",
@@ -114,6 +123,18 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     plain: "A human here approves or refuses each sealed crate. It is a decision, never a transformation.",
     detail:
       "Egress manager / output review — Gate 2. The crate's contents are never cleaned, shrunk, or altered by this decision — only its status changes.",
+  },
+  FERRY_ROUTE: {
+    title: "The ferry's route",
+    plain: "The path this island's ferry travels: out from its dock, across to the mainland, and back to the very same dock.",
+    detail:
+      "Honesty rule 1, drawn as a line: this route only ever starts and ends at the same island's dock. No route like this ever connects two different islands.",
+  },
+  EGRESS_ROUTE: {
+    title: "A crate's route to customs",
+    plain: "The path a sealed crate travels: out through this island's own egress airlock, across the water, to the shared customs hall.",
+    detail:
+      "One-way and outbound-only, like the ferry's route — it leaves through the island's egress airlock (the local disclosure-control checkpoint), never re-enters any island, and ends at customs, where Gate 2 is the only decision made.",
   },
 };
 

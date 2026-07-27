@@ -78,4 +78,23 @@ describe("buildIsland", () => {
     expect(wallMaterial.color.getHex()).toBe(theme.trust.wall);
     expect(wallMaterial.color.getHex()).not.toBe(theme.trust.island);
   });
+
+  it("places the egress airlock at the real airlock position, in its own reserved colour — not amber, since it isn't a human gate", () => {
+    const island = buildIsland(geometry, tre);
+    const airlock = findByKind(island, "EGRESS_AIRLOCK") as THREE.Mesh;
+    expect(airlock.position.x).toBeCloseTo(geometry.egressAirlock.x, 5);
+    expect(airlock.position.z).toBeCloseTo(geometry.egressAirlock.z, 5);
+    const material = airlock.material as THREE.MeshStandardMaterial;
+    expect(material.color.getHex()).toBe(theme.trust.airlock);
+    expect(material.color.getHex()).not.toBe(theme.gate.amber);
+  });
+
+  it("places the egress airlock at a different point than the ferry's dock", () => {
+    const island = buildIsland(geometry, tre);
+    const airlock = findByKind(island, "EGRESS_AIRLOCK")!;
+    const dock = findByKind(island, "DOCK")!;
+    const dx = airlock.position.x - dock.position.x;
+    const dz = airlock.position.z - dock.position.z;
+    expect(Math.hypot(dx, dz)).toBeGreaterThan(0.5);
+  });
 });

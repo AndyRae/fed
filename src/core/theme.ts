@@ -13,6 +13,8 @@ export const theme = {
     wall: 0x2d7a52,
     ferry: 0x57c98f,
     workshop: 0x8fe0b8,
+    /** The egress airlock: a fixed, automated technical checkpoint built into the wall — not a human gate, so deliberately not amber. */
+    airlock: 0x4d7a8c,
   },
   /** Everything between trust zones: the sea and the mainland submission layer. */
   untrusted: {
