@@ -1,0 +1,205 @@
+/* ============================================================================
+   Five Safes Archipelago — HUD & tour styles.
+
+   .fsa-hud-*   the top instrument bar: title, scaled-time disclosure, tour
+                launch buttons.
+   .fsa-tour-*  the lower-third narration card and its controls.
+
+   No remote fonts, no CDN, no framework — system font stack and plain CSS
+   custom properties, matching the "static, offline, dependency-light"
+   discipline in CLAUDE.md. Colours come from src/ui/cssTheme.ts, which
+   mirrors src/core/theme.ts exactly.
+   ==========================================================================*/
+
+:root {
+  --fsa-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --fsa-bg-panel: rgba(10, 14, 20, 0.86);
+  --fsa-ink: #e8edf2;
+  --fsa-ink-faint: #93a1af;
+  --fsa-line: rgba(255, 255, 255, 0.1);
+  --fsa-dur: 220ms;
+}
+
+.fsa-hud-top,
+.fsa-tour-card,
+.fsa-tour-invite {
+  font-family: var(--fsa-font);
+  color: var(--fsa-ink);
+}
+
+/* --------------------------------- top bar -------------------------------- */
+
+#fsa-hud-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 16px;
+  background: var(--fsa-bg-panel);
+  border-bottom: 1px solid var(--fsa-line);
+  transition: opacity var(--fsa-dur) ease;
+}
+
+.fsa-hud-top__title {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.fsa-hud-top__disclosure {
+  font-size: 12px;
+  color: var(--fsa-ink-faint);
+  flex: 1;
+  min-width: 0;
+}
+
+.fsa-hud-top__tours {
+  display: flex;
+  gap: 8px;
+}
+
+.fsa-btn {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--fsa-ink);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--fsa-line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fsa-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.fsa-btn:focus-visible {
+  outline: 2px solid var(--fsa-gate-amber, #d99a2b);
+  outline-offset: 1px;
+}
+.fsa-btn[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* body.fsa-touring dims the top bar so the tour card reads clearly, but the
+   chrome is never hidden entirely — it's still reachable and un-dims on
+   hover/focus, matching CLAUDE.md's "tours are interruptible" requirement. */
+body.fsa-touring #fsa-hud-top {
+  opacity: 0.3;
+}
+body.fsa-touring #fsa-hud-top:hover,
+body.fsa-touring #fsa-hud-top:focus-within {
+  opacity: 1;
+}
+
+/* -------------------------------- tour layer ------------------------------ */
+
+#fsa-tour-layer {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: min(760px, calc(100% - 32px));
+}
+
+.fsa-tour-card {
+  background: var(--fsa-bg-panel);
+  border: 1px solid var(--fsa-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fsa-tour-card__grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 16px 10px;
+}
+
+.fsa-tour-card__idx {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-right: 16px;
+  border-right: 1px solid var(--fsa-line);
+}
+.fsa-tour-card__n {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.fsa-tour-card__of {
+  font-size: 11px;
+  color: var(--fsa-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.fsa-tour-card__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fsa-tour-card__plain {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fsa-tour-card__detail {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--fsa-ink-faint);
+}
+.fsa-tour-card__detail summary {
+  cursor: pointer;
+  color: var(--fsa-ink);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fsa-tour-card__detail p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.fsa-tour-card__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--fsa-line);
+}
+
+.fsa-tour-card__progress {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+.fsa-tour-card__dot {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--fsa-line);
+}
+.fsa-tour-card__dot.is-done {
+  background: var(--fsa-ink-faint);
+}
+.fsa-tour-card__dot.is-current {
+  background: var(--fsa-gate-amber, #d99a2b);
+}
+
+/* ------------------------------ reduced motion ---------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  #fsa-hud-top,
+  .fsa-tour-card {
+    transition: none;
+  }
+}
