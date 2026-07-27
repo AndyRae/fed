@@ -57,6 +57,19 @@ describe("buildWorld", () => {
     expect(new Set(positions).size).toBe(3);
   });
 
+  it("gives every island its own ferry and egress route lines", () => {
+    const state = createInitialSimState({
+      seed: 1,
+      tres: [
+        { id: "tre-a", name: "A" },
+        { id: "tre-b", name: "B" },
+      ],
+    });
+    const world = buildWorld(state);
+    expect(findAllByKind(world, "FERRY_ROUTE").map((l) => l.userData.treId).sort()).toEqual(["tre-a", "tre-b"]);
+    expect(findAllByKind(world, "EGRESS_ROUTE").map((l) => l.userData.treId).sort()).toEqual(["tre-a", "tre-b"]);
+  });
+
   it("never mutates the SimState it reads", () => {
     const state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
     const before = JSON.parse(JSON.stringify(state));

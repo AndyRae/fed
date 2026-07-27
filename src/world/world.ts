@@ -4,6 +4,7 @@ import { buildCustoms } from "./customs.ts";
 import { buildIsland } from "./island.ts";
 import { islandGeometry, type IslandGeometry } from "./layout.ts";
 import { buildMainland } from "./mainland.ts";
+import { buildEgressRouteLine, buildFerryRouteLine } from "./routes.ts";
 import { buildSea } from "./sea.ts";
 
 /**
@@ -36,7 +37,10 @@ export function buildWorld(state: SimState): THREE.Object3D {
 
   const islandGeometries = computeIslandGeometries(state.tres);
   for (const tre of state.tres) {
-    group.add(buildIsland(islandGeometries.get(tre.id)!, tre));
+    const geometry = islandGeometries.get(tre.id)!;
+    group.add(buildIsland(geometry, tre));
+    group.add(buildFerryRouteLine(geometry));
+    group.add(buildEgressRouteLine(geometry));
   }
 
   return group;
