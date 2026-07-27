@@ -1,6 +1,6 @@
 import type { CameraPoseVec } from "../engine/cameraRig.ts";
 import type { TreId } from "../core/types.ts";
-import { customsGeometry, mainlandGeometry, type IslandGeometry, type Vec3 } from "../world/layout.ts";
+import { mainlandGeometry, type IslandGeometry, type Vec3 } from "../world/layout.ts";
 import type { CameraPose } from "./tourTypes.ts";
 
 function midpoint(a: Vec3, b: Vec3): Vec3 {
@@ -37,8 +37,6 @@ export function resolveCameraPose(pose: CameraPose, islands: ReadonlyMap<TreId, 
       return OVERVIEW_POSE;
     case "mainland":
       return poseLookingAt(mainlandGeometry.center, 24, 18);
-    case "customs":
-      return poseLookingAt(customsGeometry.center, 13, 10);
     case "sea": {
       const island = requireIsland(islands, pose.treId);
       const target = midpoint(island.dock, mainlandGeometry.quayDock);
@@ -59,6 +57,10 @@ export function resolveCameraPose(pose: CameraPose, islands: ReadonlyMap<TreId, 
     case "treVault": {
       const island = requireIsland(islands, pose.treId);
       return poseLookingAt(island.vault, 7, 6);
+    }
+    case "treCustoms": {
+      const island = requireIsland(islands, pose.treId);
+      return poseLookingAt(island.customsHall, 9, 8);
     }
   }
 }

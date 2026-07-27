@@ -42,22 +42,43 @@ simulation stage with its own state machine.
 
 ## A sealed crate's journey is its own animation
 
-A sealed crate travels from the workshop to customs as its own mesh
-(`egressPath` in `src/world/layout.ts`), through the island's egress
-airlock rather than a person or vessel physically carrying it. The
-crossing point (the airlock, a fixed structure in the wall — see the
-world-metaphor table) is honest; the fact that nothing visibly "holds"
-the crate en route is a rendering simplification. See
-`src/engine/flowController.ts`.
+A sealed crate travels from the workshop, through this island's own
+customs hall, to the researcher's quay as its own mesh (`egressPath` in
+`src/world/layout.ts`) rather than a person or vessel physically
+carrying it. The crossing point (the customs hall, a fixed structure at
+the wall — see the world-metaphor table) is honest; the fact that
+nothing visibly "holds" the crate en route is a rendering
+simplification. See `src/engine/flowController.ts`.
 
-## The egress airlock is not a distinct protocol/state-machine stage
+## This island's own customs hall is not a distinct protocol/state-machine stage
 
-The TRE's local disclosure-control check (the egress airlock — see
-CLAUDE.md's world-metaphor table, added after a correction sourced from
-docs.federated-analytics.ac.uk) is depicted in the world/visual layer as
-a real checkpoint on every crate's route, but it is not modelled as a
-separate `TaskStatus` in `src/core/types.ts`. A crate transitions
-directly from `COMPLETE` to `AWAITING_OUTPUT_REVIEW`; the airlock is
-part of the crate's geometry and journey, not a tracked simulation
-state. The sole disclosure *decision* remains the human customs
-inspector's, at Gate 2 — matching honesty rules 3 and 4.
+Gate 2's local review is depicted in the world/visual layer as a real
+building on every island, with its own inspector marker and route, but
+it is not modelled as a separate `TaskStatus` in `src/core/types.ts`. A
+crate transitions directly from `COMPLETE` to `AWAITING_OUTPUT_REVIEW`
+to `RELEASED`/`OUTPUT_REFUSED`; the customs hall is part of the crate's
+geometry and journey, and the location of the existing `decideOutputReview`
+decision, not an additional tracked simulation state.
+
+## The egress pattern depicted is "Full Local Control"
+
+docs.federated-analytics.ac.uk/federated_research_patterns/egress
+describes four disclosure-control patterns. This model depicts **Full
+Local Control**: "at least one person checks the results by eye and
+approves the release" at each TRE, with "results flow to researchers
+after individual TRE approval" and no additional central/federated-level
+review modelled. This matches CLAUDE.md's own honesty rule 9, which
+already names this weave's egress identity as **Manual** — a human
+decision, not an automated one.
+
+The reference implementation's documented Egress service
+(`/five_safes_tes/reference_implementation/core_components`) is
+described as a single centralized component rather than one per TRE.
+Depicting Gate 2 as local to each island — one customs hall per TRE,
+no shared facility, and no customs hall on the mainland — is therefore
+a deliberate choice of *which* valid, documented egress pattern to
+show, made because it demonstrates local governance control clearly to
+governance readers; it is not a departure from the general Five Safes
+framework, only from one specific reference deployment's architecture.
+If a future weave models Full Central Control instead, it should be a
+distinctly named alternative, not a silent change to this one.

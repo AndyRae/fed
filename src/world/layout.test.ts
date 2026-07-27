@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildRoutes,
   connectsTwoIslands,
-  customsGeometry,
   egressPath,
   egressRoute,
   ferryPath,
@@ -11,6 +10,7 @@ import {
   isLegalRoute,
   mainlandGeometry,
   vaultZone,
+  workflowPath,
   type Vec3,
 } from "./layout.ts";
 
@@ -45,10 +45,10 @@ describe("ferryRoute", () => {
 });
 
 describe("egressRoute", () => {
-  it("leaves the island for customs and never re-enters an island", () => {
+  it("leaves the island for the mainland directly and never re-enters an island", () => {
     const route = egressRoute("tre-a");
     const last = route.waypoints[route.waypoints.length - 1]!;
-    expect(last.kind).toBe("CUSTOMS");
+    expect(last.kind).toBe("MAINLAND");
     const interiorWaypoints = route.waypoints.filter((w) => w.kind === "ISLAND_INTERIOR");
     expect(interiorWaypoints).toHaveLength(1);
     expect(interiorWaypoints[0]!.treId).toBe("tre-a");
@@ -140,10 +140,10 @@ describe("real geometry: islandGeometry", () => {
     }
   });
 
-  it("places the egress airlock exactly on the wall boundary too, at a different point than the ferry's dock", () => {
+  it("places the customs hall exactly on the wall boundary too, at a different point than the ferry's dock", () => {
     for (const island of islands) {
-      expect(distance(island.egressAirlock, island.center)).toBeCloseTo(island.wallRadius, 5);
-      expect(distance(island.egressAirlock, island.dock)).toBeGreaterThan(0.5);
+      expect(distance(island.customsHall, island.center)).toBeCloseTo(island.wallRadius, 5);
+      expect(distance(island.customsHall, island.dock)).toBeGreaterThan(0.5);
     }
   });
 
@@ -201,17 +201,17 @@ describe("real geometry: ferryPath", () => {
 describe("real geometry: egressPath", () => {
   const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
 
-  it("starts at the island's workshop and ends at customs, never re-entering an island", () => {
+  it("starts at the island's workshop and ends at the mainland's quay, never re-entering an island", () => {
     for (const island of islands) {
       const path = egressPath(island);
       expect(path[0]).toEqual(island.workshop);
-      expect(path[path.length - 1]).toEqual(customsGeometry.dock);
+      expect(path[path.length - 1]).toEqual(mainlandGeometry.quayDock);
     }
   });
 
-  it("crosses the wall through the island's own egress airlock, not the ferry's dock", () => {
+  it("crosses the wall through the island's own customs hall, not the ferry's dock", () => {
     for (const island of islands) {
-      expect(egressPath(island)).toContainEqual(island.egressAirlock);
+      expect(egressPath(island)).toContainEqual(island.customsHall);
       expect(egressPath(island)).not.toContainEqual(island.dock);
     }
   });
@@ -223,6 +223,30 @@ describe("real geometry: egressPath", () => {
         for (const other of others) {
           expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);
         }
+      }
+    }
+  });
+});
+
+describe("real geometry: workflowPath", () => {
+  const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
+
+  it("connects the harbourmaster's office, the workshop, and the customs hall, in that order — the real sequence a task follows inside the wall", () => {
+    for (const island of islands) {
+      expect(workflowPath(island)).toEqual([island.harbourmasterOffice, island.workshop, island.customsHall]);
+    }
+  });
+
+  it("never touches the vault — honesty rule 2: nothing whose origin is the vault ever travels anywhere", () => {
+    for (const island of islands) {
+      expect(workflowPath(island)).not.toContainEqual(island.vault);
+    }
+  });
+
+  it("stays entirely inside this island's own wall", () => {
+    for (const island of islands) {
+      for (const point of workflowPath(island)) {
+        expect(distance(point, island.center)).toBeLessThanOrEqual(island.wallRadius + 1e-9);
       }
     }
   });

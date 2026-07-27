@@ -13,8 +13,8 @@ export const theme = {
     wall: 0x2d7a52,
     ferry: 0x57c98f,
     workshop: 0x8fe0b8,
-    /** The egress airlock: a fixed, automated technical checkpoint built into the wall — not a human gate, so deliberately not amber. */
-    airlock: 0x4d7a8c,
+    /** The on-island workflow route: an informational line only, connecting Gate 1, the workshop, and this island's own Gate 2 — never anything that itself moves or decides. Deliberately saturated enough to read against the island green. */
+    workflow: 0x7c4fae,
   },
   /** Everything between trust zones: the sea and the mainland submission layer. */
   untrusted: {
@@ -35,7 +35,7 @@ export const theme = {
   crate: {
     body: 0xd9a95f,
   },
-  /** The customs hall building itself, outside every island. Distinct from the amber gate marker for the human decision that happens inside it. */
+  /** The customs hall building itself, one per island. Distinct from the amber gate marker for the human decision that happens inside it. */
   customs: {
     hall: 0xb98a5e,
   },

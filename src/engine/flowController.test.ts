@@ -100,7 +100,7 @@ describe("createFlowController", () => {
     expect(ferryA.position.z).toBeCloseTo(dockA.z, 5);
   });
 
-  it("spawns a crate at the workshop on CRATE_SEALED, moves it to customs, then removes it", () => {
+  it("spawns a crate at the workshop on CRATE_SEALED, routes it through this island's own customs hall to the quay, then removes it", () => {
     const { host, frame } = createFakeHost();
     const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
     let state = twoIslandWorldWithCollectedTask();

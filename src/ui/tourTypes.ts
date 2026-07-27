@@ -34,12 +34,12 @@ export type SimDirective =
 export type CameraPose =
   | { readonly kind: "overview" }
   | { readonly kind: "mainland" }
-  | { readonly kind: "customs" }
   | { readonly kind: "sea"; readonly treId: TreId }
   | { readonly kind: "tre"; readonly treId: TreId }
   | { readonly kind: "treGate1"; readonly treId: TreId }
   | { readonly kind: "treWorkshop"; readonly treId: TreId }
-  | { readonly kind: "treVault"; readonly treId: TreId };
+  | { readonly kind: "treVault"; readonly treId: TreId }
+  | { readonly kind: "treCustoms"; readonly treId: TreId };
 
 export type FocusEntity =
   | { readonly kind: "none" }

@@ -69,9 +69,9 @@ function buildCrateMesh(treId: TreId): THREE.Object3D {
  * driving protocol state itself (src/sim owns that). Watches
  * state.events for TASK_COLLECTED (that island's ferry leaves its dock,
  * travels to the mainland, and returns — honesty rule 1) and CRATE_SEALED
- * (a crate travels from the workshop to customs via the same dock
- * corridor the ferry uses, rather than literally riding inside the ferry
- * mesh — see SIMPLIFICATIONS.md).
+ * (a crate travels from the workshop through this island's own customs
+ * hall and directly to the researcher's quay — as its own mesh, rather
+ * than literally riding inside the ferry mesh — see SIMPLIFICATIONS.md).
  */
 export function createFlowController(
   host: FlowSceneHost,

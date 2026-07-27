@@ -23,13 +23,13 @@ export const ENTITY_KINDS = [
   "WORKSHOP",
   "GATE1_HARBOURMASTER",
   "DOCK",
-  "EGRESS_AIRLOCK",
   "FERRY",
   "CRATE",
   "CUSTOMS_HALL",
   "GATE2_INSPECTOR",
   "FERRY_ROUTE",
   "EGRESS_ROUTE",
+  "WORKFLOW_ROUTE",
 ] as const;
 
 export type EntityKind = (typeof ENTITY_KINDS)[number];
@@ -49,9 +49,9 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   },
   MAINLAND_DOCK: {
     title: "The researcher's quay",
-    plain: "Where a researcher submits a project and its tasks, and where approved results eventually come back to.",
+    plain: "Where a researcher submits a project and its tasks, and where approved results simply arrive — no further check happens here.",
     detail:
-      "Researcher / submitter. Tasks begin here, and aggregation of released results across every TRE that approved the project happens here too — the one point in the model that reads across islands, and only after Gate 2.",
+      "Researcher / submitter. Tasks begin here, and released results arrive directly here from each island's own customs hall; there is no customs hall or inspector on the mainland. Aggregation of released results across every TRE that approved the project happens here too — the one point in the model that reads across islands, and only after each island's own Gate 2.",
   },
   MAINLAND_BUILDING: {
     title: "A quay building",
@@ -78,9 +78,9 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   },
   WORKSHOP: {
     title: "The workshop",
-    plain: "Where the researcher's container actually runs, inside the wall.",
+    plain: "Where the researcher's container actually runs, inside the wall, right next to the vault it computes on.",
     detail:
-      "The TES runner (Funnel, in the reference implementation). Executes the GA4GH TES task through its real states: QUEUED → INITIALIZING → RUNNING → COMPLETE (or EXECUTOR_ERROR / CANCELED).",
+      "The TES runner (Funnel, in the reference implementation). Executes the GA4GH TES task through its real states: QUEUED → INITIALIZING → RUNNING → COMPLETE (or EXECUTOR_ERROR / CANCELED). Sits beside the vault and computes on it in place — nothing the vault holds ever leaves it (honesty rule 2); only the workshop's own output is ever sealed into a crate.",
   },
   GATE1_HARBOURMASTER: {
     title: "The harbourmaster's office",
@@ -92,13 +92,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "The ferry's dock",
     plain: "Where this island's own ferry departs and returns, bringing an approved container in from the mainland.",
     detail:
-      "The TRE agent's departure point. The ferry leaves from here, collects an approved container from the mainland, and returns here — the outbound-only fetch. Sealed crates leave by a different point on the wall: the egress airlock.",
-  },
-  EGRESS_AIRLOCK: {
-    title: "The egress airlock",
-    plain: "Every sealed crate passes through here before it may leave the island — an automated technical check, separate from the human decision that comes next.",
-    detail:
-      "The TRE's own local disclosure-control check, built into the wall (docs.federated-analytics.ac.uk describes this as part of the weave: \"essential disclosure control processes within TREs\"). It is not a third gate and makes no governance decision — the sole disclosure decision on this crate is still Gate 2, made by the customs inspector.",
+      "The TRE agent's departure point. The ferry leaves from here, collects an approved container from the mainland, and returns here — the outbound-only fetch. Sealed crates leave by a different point on the wall: this island's own customs hall.",
   },
   FERRY: {
     title: "The ferry",
@@ -113,16 +107,17 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
       "A result awaiting output review. Produced by the workshop, visually distinct from the vault's contents, and never altered by review — only approved or refused.",
   },
   CUSTOMS_HALL: {
-    title: "The customs hall",
-    plain: "Where sealed crates from every island wait for a human decision, outside any island's wall.",
+    title: "This island's customs hall",
+    plain:
+      "Every result this island produces passes through here before it may leave — a human decides whether they're comfortable releasing it beyond this TRE's own control.",
     detail:
-      "The egress service. Sits outside every island — the one place in the model that holds crates from more than one TRE at once, and only after they're already sealed.",
+      "Gate 2, made locally: this TRE's own disclosure-control review. docs.federated-analytics.ac.uk describes this as the \"Full Local Control\" egress pattern — \"at least one person checks the results by eye and approves the release.\" There is no shared or central customs hall in this model, and none on the mainland: an approved crate travels directly from here to the researcher's quay.",
   },
   GATE2_INSPECTOR: {
     title: "The customs inspector",
-    plain: "A human here approves or refuses each sealed crate. It is a decision, never a transformation.",
+    plain: "A human here, on this island, approves or refuses each sealed crate this TRE produced. It is a decision, never a transformation.",
     detail:
-      "Egress manager / output review — Gate 2. The crate's contents are never cleaned, shrunk, or altered by this decision — only its status changes.",
+      "Egress manager / output review — Gate 2, local to this TRE, just as Gate 1's harbourmaster is. The crate's contents are never cleaned, shrunk, or altered by this decision — only its status changes.",
   },
   FERRY_ROUTE: {
     title: "The ferry's route",
@@ -131,10 +126,18 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
       "Honesty rule 1, drawn as a line: this route only ever starts and ends at the same island's dock. No route like this ever connects two different islands.",
   },
   EGRESS_ROUTE: {
-    title: "A crate's route to customs",
-    plain: "The path a sealed crate travels: out through this island's own egress airlock, across the water, to the shared customs hall.",
+    title: "A crate's route to the quay",
+    plain:
+      "The path a sealed crate travels: out through this island's own customs hall, across the water, directly to the researcher's quay.",
     detail:
-      "One-way and outbound-only, like the ferry's route — it leaves through the island's egress airlock (the local disclosure-control checkpoint), never re-enters any island, and ends at customs, where Gate 2 is the only decision made.",
+      "One-way and outbound-only, like the ferry's route — it leaves through this island's own customs hall, where Gate 2's human decision is made, never re-enters any island, and ends at the researcher's quay. There is no shared central stop along the way.",
+  },
+  WORKFLOW_ROUTE: {
+    title: "This island's own workflow",
+    plain:
+      "How a task actually moves through this island once it's here: approved at the harbourmaster's office, run at the workshop, then checked at the customs hall before it may leave.",
+    detail:
+      "Connects the harbourmaster's office (Gate 1), the workshop, and this island's own customs hall (Gate 2), in that order — the real sequence a TES task's governance states follow inside the wall. Purely informational: nothing travels along it. The vault is deliberately not on this path — honesty rule 2: nothing whose origin is the vault ever travels anywhere.",
   },
 };
 

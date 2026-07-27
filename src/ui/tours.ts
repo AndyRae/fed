@@ -110,19 +110,19 @@ export const journeyOfATaskTour: Tour = {
       narration: {
         plain: "The work finishes and is sealed into a crate. Nothing is released yet.",
         detail:
-          "Two ticks: RUNNING → COMPLETE → AWAITING_OUTPUT_REVIEW. A Crate is sealed in HELD status and a CRATE_SEALED event fires. The crate now sits at customs, outside any island, waiting for a human decision.",
+          "Two ticks: RUNNING → COMPLETE → AWAITING_OUTPUT_REVIEW. A Crate is sealed in HELD status and a CRATE_SEALED event fires — it now waits at this island's own customs hall for a human decision, never anywhere shared with another TRE.",
       },
       simDirective: { kind: "tick", ticks: 2 },
     },
     {
       id: "gate-2-review",
       title: "Gate 2: output review",
-      cameraPose: { kind: "customs" },
+      cameraPose: { kind: "treCustoms", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
-        plain: "A person at the customs hall inspects the sealed crate and decides to release it.",
+        plain: "A person at this island's own customs hall inspects the sealed crate and decides to release it.",
         detail:
-          "decideOutputReview(RELEASED) — Gate 2, the output/egress review. This is a decision, not a transformation: the crate's contents are never altered, only its status.",
+          "decideOutputReview(RELEASED) — Gate 2, the output/egress review, made locally by this TRE. This is a decision, not a transformation: the crate's contents are never altered, only its status.",
       },
       simDirective: {
         kind: "decideOutputReview",
@@ -132,11 +132,12 @@ export const journeyOfATaskTour: Tour = {
     {
       id: "release",
       title: "Released",
-      cameraPose: { kind: "customs" },
+      cameraPose: { kind: "treCustoms", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
-        plain: "The crate is released and can now travel back to the researcher.",
-        detail: "The task and its crate both now carry RELEASED. This is the only path a result can leave customs by.",
+        plain: "The crate is released and can now travel directly to the researcher — no further check awaits it.",
+        detail:
+          "The task and its crate both now carry RELEASED. This is the only path a result can leave this island's own customs hall by; there is no additional central review.",
       },
       simDirective: { kind: "none" },
     },
@@ -149,7 +150,7 @@ export const journeyOfATaskTour: Tour = {
         plain:
           "Back at the researcher's quay, released results are gathered together with results from every other island that approved the project.",
         detail:
-          "releasedCratesForProject reads across every TRE's released crates for this project — the one point in the model that looks across islands, and only over crates that already cleared Gate 2.",
+          "releasedCratesForProject reads across every TRE's released crates for this project — the one point in the model that looks across islands, and only over crates that already cleared that island's own Gate 2.",
       },
       simDirective: { kind: "none" },
     },
@@ -246,7 +247,7 @@ export const theResultThatNeverLeftTour: Tour = {
       cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
-        plain: "The finished work is sealed into a crate and held at customs, awaiting a decision.",
+        plain: "The finished work is sealed into a crate and held at this island's own customs hall, awaiting a decision.",
         detail: "RUNNING → COMPLETE → AWAITING_OUTPUT_REVIEW; a Crate is sealed in HELD status.",
       },
       simDirective: { kind: "tick", ticks: 2 },
@@ -254,12 +255,12 @@ export const theResultThatNeverLeftTour: Tour = {
     {
       id: "gate-2-refuses",
       title: "Gate 2 refuses",
-      cameraPose: { kind: "customs" },
+      cameraPose: { kind: "treCustoms", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
-        plain: "The customs inspector examines the crate and refuses it. It will not leave.",
+        plain: "This island's own customs inspector examines the crate and refuses it. It will not leave.",
         detail:
-          "decideOutputReview(REFUSED) — Gate 2 can say no. The task moves to OUTPUT_REFUSED and the crate to REFUSED; neither is deleted.",
+          "decideOutputReview(REFUSED) — Gate 2, local to this TRE, can say no. The task moves to OUTPUT_REFUSED and the crate to REFUSED; neither is deleted.",
       },
       simDirective: {
         kind: "decideOutputReview",
@@ -269,7 +270,7 @@ export const theResultThatNeverLeftTour: Tour = {
     {
       id: "crate-retained",
       title: "The crate is retained",
-      cameraPose: { kind: "customs" },
+      cameraPose: { kind: "treCustoms", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain:

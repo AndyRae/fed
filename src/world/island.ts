@@ -5,7 +5,8 @@ import { createRng } from "../sim/rng.ts";
 import type { IslandGeometry } from "./layout.ts";
 import { SEA_LEVEL_Y } from "./layout.ts";
 
-const ISLAND_HEIGHT = 1.4;
+/** Exported for src/world/routes.ts: the on-island workflow route must clear this to sit visibly above the terrain rather than underneath it. */
+export const ISLAND_HEIGHT = 1.4;
 const WALL_TUBE_RADIUS = 0.6;
 
 /** A short, deterministic string hash — turns a TreId into an RNG seed so each island's shape is stable across reloads without needing to thread a seed through IslandGeometry. */
@@ -121,20 +122,36 @@ export function buildIsland(geometry: IslandGeometry, tre: Tre): THREE.Object3D 
   dock.userData.treId = tre.id;
   group.add(dock);
 
-  // Faces outward through the wall at the airlock's own point on the
-  // boundary — a ring you could plausibly pass a crate through, standing
-  // upright rather than lying flat like the wall's own torus.
-  const airlockDirX = geometry.egressAirlock.x - geometry.center.x;
-  const airlockDirZ = geometry.egressAirlock.z - geometry.center.z;
-  const airlock = new THREE.Mesh(
-    new THREE.TorusGeometry(1.1, 0.3, 10, 28),
-    new THREE.MeshStandardMaterial({ color: theme.trust.airlock, roughness: 0.4, metalness: 0.35 }),
+  // This island's own customs hall — Gate 2, a human decision made
+  // locally by this TRE, not a shared/central facility. Paired the same
+  // way Gate 1 pairs the harbourmaster's office with amber: the hall
+  // building itself is a neutral colour, and the inspector marker beside
+  // it — set back slightly toward the island's interior, never exactly
+  // coincident with the hall — carries the reserved gate amber.
+  const customsHall = new THREE.Mesh(
+    new THREE.BoxGeometry(4, 2.4, 4),
+    new THREE.MeshStandardMaterial({ color: theme.customs.hall, roughness: 0.8 }),
   );
-  airlock.rotation.y = Math.atan2(airlockDirX, airlockDirZ);
-  airlock.position.set(geometry.egressAirlock.x, SEA_LEVEL_Y + ISLAND_HEIGHT + 1.1, geometry.egressAirlock.z);
-  airlock.userData.kind = "EGRESS_AIRLOCK";
-  airlock.userData.treId = tre.id;
-  group.add(airlock);
+  customsHall.position.set(geometry.customsHall.x, SEA_LEVEL_Y + ISLAND_HEIGHT + 1.2, geometry.customsHall.z);
+  customsHall.userData.kind = "CUSTOMS_HALL";
+  customsHall.userData.treId = tre.id;
+  group.add(customsHall);
+
+  const towardCenterX = geometry.center.x - geometry.customsHall.x;
+  const towardCenterZ = geometry.center.z - geometry.customsHall.z;
+  const towardCenterLen = Math.hypot(towardCenterX, towardCenterZ) || 1;
+  const inspector = new THREE.Mesh(
+    new THREE.ConeGeometry(1.1, 2.2, 6),
+    new THREE.MeshStandardMaterial({ color: theme.gate.amber, roughness: 0.5 }),
+  );
+  inspector.position.set(
+    geometry.customsHall.x + (towardCenterX / towardCenterLen) * 2.4,
+    SEA_LEVEL_Y + ISLAND_HEIGHT + 1.1,
+    geometry.customsHall.z + (towardCenterZ / towardCenterLen) * 2.4,
+  );
+  inspector.userData.kind = "GATE2_INSPECTOR";
+  inspector.userData.treId = tre.id;
+  group.add(inspector);
 
   // Invisible — no geometry, so it's never raycast-pickable itself — just an
   // elevated anchor point for this island's own floating name label, well

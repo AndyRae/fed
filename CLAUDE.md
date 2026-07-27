@@ -50,9 +50,9 @@ alternatives per-feature, because the geography *is* the argument:
 | The workshop | TES runner (Funnel in the reference implementation) | Where containers execute, inside the wall |
 | The vault | The sensitive data | Fixed at the island's centre; nothing originating here ever boards a ferry |
 | A sealed crate | A result awaiting review | Produced by the workshop; sealed until a human decision |
-| The egress airlock (per island) | The TRE's own local disclosure-control check | An automated technical checkpoint built into the wall; every sealed crate passes through it before crossing to the shared customs hall. It is not a vessel and not a third gate — the sole human decision on this crate is still Gate 2, at the customs hall |
-| The customs hall | Egress service | Outside the islands; crates are held here |
-| The customs inspector | Egress manager / output review | Gate 2: a human approves or refuses release; the stamp is the event |
+| The island's own customs hall (per island) | The TRE's own local disclosure-control check | Gate 2: a human at this TRE decides whether they are comfortable with this crate leaving their control. Built on the island itself, a different point on the wall than the ferry's dock. There is no shared or central customs hall anywhere in the model, and none on the mainland |
+| The customs inspector (per island) | Egress manager / output review | The human who makes Gate 2's decision — local to this TRE, not a shared or central role; the stamp is the event |
+| The on-island workflow (per island) | A task's real path through the TRE | Purely informational, never a route anything travels: connects the harbourmaster's office, the workshop, and this island's own customs hall, in the order a task's governance states actually follow. The vault is never on it |
 
 There are **no bridges, causeways, cables, or boats between islands**. Five
 Safes TES supports isolated analysis only; islands never communicate with each
@@ -69,7 +69,7 @@ for PGSimCity:
 src/
   core/           shared contracts, event bus, registry, theme, utilities
   sim/            pure TypeScript model of the Five Safes TES protocol
-  world/          three.js geometry, one module per zone (sea, mainland, island, customs)
+  world/          three.js geometry, one module per zone (sea, mainland, island — each island builds its own customs hall)
   engine/         renderer, camera rig, ferry/flow animation, labels, picking
   ui/             HUD, tour player, inspector, narration panel, transcript
 ```
@@ -82,9 +82,10 @@ src/
   decisions.
 - `src/world` may read `SimState` but never mutates it.
 - `src/world/layout.ts` is the single source of truth for geography: island
-  positions, wall bounds, ferry routes, dock anchors, and each island's
-  egress airlock (the crate's own crossing point, distinct from the ferry's
-  dock). Cross-zone coordinates live nowhere else.
+  positions, wall bounds, ferry routes, dock anchors, and each island's own
+  customs hall (the crate's own crossing point and Gate 2's location,
+  distinct from the ferry's dock). Cross-zone coordinates live nowhere
+  else.
 - `src/ui/tours.ts` is the single source of truth for tours (see Tour
   mechanism). Tours are data, not code.
 - The browser debugging surface is `window.ARCHIPELAGO`: simulation, event
@@ -129,19 +130,21 @@ the same review as prose.
    originate at the workshop and are visually distinct from vault contents.
    "The data never moves" must be checkable by watching, not asserted by a
    caption.
-3. **Both gates are humans with visible waiting.** Project approval and
-   output review are decisions made by a person, depicted as a person (or an
-   unambiguous human-decision marker), with a queue that visibly holds until
-   the decision lands. Never depict either gate as an automatic scanner,
-   filter, or conveyor. Speeding through the wait for pacing is allowed only
-   in scaled time that the UI discloses. The egress airlock (per island) is
-   not exempt from this by being a third gate — it isn't one. It is a
-   non-decisional automated technical checkpoint; the crate's only disclosure
-   *decision* is still Gate 2, made by the customs inspector.
+3. **Both gates are humans with visible waiting.** There are exactly two
+   gates, and both are local to each TRE: Gate 1 (project approval, at the
+   harbourmaster's office) and Gate 2 (output review, at that island's own
+   customs hall). Both are decisions made by a person, depicted as a person
+   (or an unambiguous human-decision marker), with a queue that visibly
+   holds until the decision lands. Never depict either gate as an automatic
+   scanner, filter, or conveyor. Speeding through the wait for pacing is
+   allowed only in scaled time that the UI discloses. There is no shared or
+   central gate anywhere in the model, and no customs hall or inspector
+   exists on the mainland — once an island's own Gate 2 approves a crate, it
+   travels directly to the researcher's quay.
 4. **Output review is a decision, not a transformation.** A crate is approved
-   or refused. It is never "cleaned", shrunk, or laundered by the customs
-   hall. If a tour wants to explain disclosure control heuristics, it does so
-   in narration, not by animating the crate changing.
+   or refused. It is never "cleaned", shrunk, or laundered by that island's
+   own customs hall. If a tour wants to explain disclosure control
+   heuristics, it does so in narration, not by animating the crate changing.
 5. **Refusal is a first-class path.** The simulation must include projects
    that Gate 1 rejects and results that Gate 2 refuses, and tours must show
    them. A world that only ever says yes teaches that the gates are

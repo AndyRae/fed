@@ -37,7 +37,7 @@ describe("buildIsland", () => {
     });
   });
 
-  it("places the harbourmaster's office (Gate 1) in the reserved amber colour, and nothing else on the island uses it", () => {
+  it("places the harbourmaster's office (Gate 1) in the reserved amber colour, and nothing but this island's own Gate 2 inspector shares it", () => {
     const island = buildIsland(geometry, tre);
     const gate = findByKind(island, "GATE1_HARBOURMASTER") as THREE.Mesh;
     expect(gate.position.x).toBeCloseTo(geometry.harbourmasterOffice.x, 5);
@@ -45,7 +45,7 @@ describe("buildIsland", () => {
     expect(material.color.getHex()).toBe(theme.gate.amber);
 
     island.traverse((obj) => {
-      if (obj === gate) return;
+      if (obj === gate || obj.userData.kind === "GATE2_INSPECTOR") return;
       const mat = (obj as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
       if (mat?.color) expect(mat.color.getHex(), obj.userData.kind).not.toBe(theme.gate.amber);
     });
@@ -79,22 +79,30 @@ describe("buildIsland", () => {
     expect(wallMaterial.color.getHex()).not.toBe(theme.trust.island);
   });
 
-  it("places the egress airlock at the real airlock position, in its own reserved colour — not amber, since it isn't a human gate", () => {
+  it("places this island's own customs hall at the real customs-hall position, in the customs colour — distinct from the amber gate marker beside it", () => {
     const island = buildIsland(geometry, tre);
-    const airlock = findByKind(island, "EGRESS_AIRLOCK") as THREE.Mesh;
-    expect(airlock.position.x).toBeCloseTo(geometry.egressAirlock.x, 5);
-    expect(airlock.position.z).toBeCloseTo(geometry.egressAirlock.z, 5);
-    const material = airlock.material as THREE.MeshStandardMaterial;
-    expect(material.color.getHex()).toBe(theme.trust.airlock);
+    const hall = findByKind(island, "CUSTOMS_HALL") as THREE.Mesh;
+    expect(hall.position.x).toBeCloseTo(geometry.customsHall.x, 5);
+    expect(hall.position.z).toBeCloseTo(geometry.customsHall.z, 5);
+    const material = hall.material as THREE.MeshStandardMaterial;
+    expect(material.color.getHex()).toBe(theme.customs.hall);
     expect(material.color.getHex()).not.toBe(theme.gate.amber);
   });
 
-  it("places the egress airlock at a different point than the ferry's dock", () => {
+  it("places this island's own Gate 2 inspector in the reserved amber colour, tagged with this island's id", () => {
     const island = buildIsland(geometry, tre);
-    const airlock = findByKind(island, "EGRESS_AIRLOCK")!;
+    const inspector = findByKind(island, "GATE2_INSPECTOR") as THREE.Mesh;
+    const material = inspector.material as THREE.MeshStandardMaterial;
+    expect(material.color.getHex()).toBe(theme.gate.amber);
+    expect(inspector.userData.treId).toBe("tre-a");
+  });
+
+  it("places the customs hall at a different point than the ferry's dock", () => {
+    const island = buildIsland(geometry, tre);
+    const hall = findByKind(island, "CUSTOMS_HALL")!;
     const dock = findByKind(island, "DOCK")!;
-    const dx = airlock.position.x - dock.position.x;
-    const dz = airlock.position.z - dock.position.z;
+    const dx = hall.position.x - dock.position.x;
+    const dz = hall.position.z - dock.position.z;
     expect(Math.hypot(dx, dz)).toBeGreaterThan(0.5);
   });
 

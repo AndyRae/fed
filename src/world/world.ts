@@ -1,10 +1,9 @@
 import * as THREE from "three";
 import type { SimState, Tre, TreId } from "../core/types.ts";
-import { buildCustoms } from "./customs.ts";
 import { buildIsland } from "./island.ts";
 import { islandGeometry, type IslandGeometry } from "./layout.ts";
 import { buildMainland } from "./mainland.ts";
-import { buildEgressRouteLine, buildFerryRouteLine } from "./routes.ts";
+import { buildEgressRouteLine, buildFerryRouteLine, buildWorkflowRouteLine } from "./routes.ts";
 import { buildSea } from "./sea.ts";
 
 /**
@@ -23,9 +22,11 @@ export function computeIslandGeometries(tres: readonly Tre[]): ReadonlyMap<TreId
 }
 
 /**
- * Builds the whole static world from a SimState: sea, mainland, customs,
- * and one island per TRE. Reads SimState, never mutates it. See CLAUDE.md
- * "Architecture": `src/world` may read `SimState` but never mutates it.
+ * Builds the whole static world from a SimState: sea, mainland, and one
+ * island per TRE — each island carrying its own customs hall, since there
+ * is no shared or central one. Reads SimState, never mutates it. See
+ * CLAUDE.md "Architecture": `src/world` may read `SimState` but never
+ * mutates it.
  */
 export function buildWorld(state: SimState): THREE.Object3D {
   const group = new THREE.Group();
@@ -33,7 +34,6 @@ export function buildWorld(state: SimState): THREE.Object3D {
 
   group.add(buildSea());
   group.add(buildMainland());
-  group.add(buildCustoms());
 
   const islandGeometries = computeIslandGeometries(state.tres);
   for (const tre of state.tres) {
@@ -41,6 +41,7 @@ export function buildWorld(state: SimState): THREE.Object3D {
     group.add(buildIsland(geometry, tre));
     group.add(buildFerryRouteLine(geometry));
     group.add(buildEgressRouteLine(geometry));
+    group.add(buildWorkflowRouteLine(geometry));
   }
 
   return group;

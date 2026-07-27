@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { customsGeometry, islandGeometry, mainlandGeometry } from "../world/layout.ts";
+import { islandGeometry, mainlandGeometry } from "../world/layout.ts";
 import { resolveCameraPose } from "./cameraPoses.ts";
 import type { CameraPose } from "./tourTypes.ts";
 
@@ -40,9 +40,9 @@ describe("resolveCameraPose", () => {
     expect(pose.target).toEqual(mainlandGeometry.center);
   });
 
-  it("targets customs' real centre for 'customs'", () => {
-    const pose = resolveCameraPose({ kind: "customs" }, islands);
-    expect(pose.target).toEqual(customsGeometry.center);
+  it("targets this island's own customs hall exactly for 'treCustoms'", () => {
+    const pose = resolveCameraPose({ kind: "treCustoms", treId: "tre-c" }, islands);
+    expect(pose.target).toEqual(islands.get("tre-c")!.customsHall);
   });
 
   it("gives 'sea' a target between that island's dock and the mainland dock", () => {

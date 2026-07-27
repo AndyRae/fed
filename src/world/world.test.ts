@@ -13,7 +13,7 @@ function findAllByKind(root: THREE.Object3D, kind: string): THREE.Object3D[] {
 }
 
 describe("buildWorld", () => {
-  it("builds sea, mainland, and customs exactly once regardless of TRE count", () => {
+  it("builds sea and mainland exactly once regardless of TRE count", () => {
     const state = createInitialSimState({
       seed: 1,
       tres: [
@@ -25,7 +25,28 @@ describe("buildWorld", () => {
     const world = buildWorld(state);
     expect(findAllByKind(world, "SEA")).toHaveLength(1);
     expect(findAllByKind(world, "MAINLAND_LAND")).toHaveLength(1);
-    expect(findAllByKind(world, "CUSTOMS_HALL")).toHaveLength(1);
+  });
+
+  it("gives every island its own customs hall and Gate 2 inspector — there is no shared, central one", () => {
+    const state = createInitialSimState({
+      seed: 1,
+      tres: [
+        { id: "tre-a", name: "Isle of Ailsa" },
+        { id: "tre-b", name: "Isle of Kessel" },
+        { id: "tre-c", name: "Isle of Muck" },
+      ],
+    });
+    const world = buildWorld(state);
+    expect(findAllByKind(world, "CUSTOMS_HALL").map((h) => h.userData.treId).sort()).toEqual([
+      "tre-a",
+      "tre-b",
+      "tre-c",
+    ]);
+    expect(findAllByKind(world, "GATE2_INSPECTOR").map((h) => h.userData.treId).sort()).toEqual([
+      "tre-a",
+      "tre-b",
+      "tre-c",
+    ]);
   });
 
   it("builds exactly one island per TRE in the sim state, no more, no fewer", () => {
@@ -57,7 +78,7 @@ describe("buildWorld", () => {
     expect(new Set(positions).size).toBe(3);
   });
 
-  it("gives every island its own ferry and egress route lines", () => {
+  it("gives every island its own ferry, egress, and workflow route lines", () => {
     const state = createInitialSimState({
       seed: 1,
       tres: [
@@ -68,6 +89,7 @@ describe("buildWorld", () => {
     const world = buildWorld(state);
     expect(findAllByKind(world, "FERRY_ROUTE").map((l) => l.userData.treId).sort()).toEqual(["tre-a", "tre-b"]);
     expect(findAllByKind(world, "EGRESS_ROUTE").map((l) => l.userData.treId).sort()).toEqual(["tre-a", "tre-b"]);
+    expect(findAllByKind(world, "WORKFLOW_ROUTE").map((l) => l.userData.treId).sort()).toEqual(["tre-a", "tre-b"]);
   });
 
   it("never mutates the SimState it reads", () => {

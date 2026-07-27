@@ -8,7 +8,7 @@ import type { TreId } from "../core/types.ts";
  * session's work. `src/world` may read `SimState` but never mutates it;
  * this file is the single source of truth for geography once it exists.
  */
-export type ZoneKind = "SEA" | "MAINLAND" | "ISLAND_INTERIOR" | "VAULT" | "CUSTOMS";
+export type ZoneKind = "SEA" | "MAINLAND" | "ISLAND_INTERIOR" | "VAULT";
 
 export interface Zone {
   readonly id: string;
@@ -34,7 +34,6 @@ export function vaultZone(treId: TreId): Zone {
 
 export const seaZone: Zone = { id: "sea", kind: "SEA" };
 export const mainlandZone: Zone = { id: "mainland", kind: "MAINLAND" };
-export const customsZone: Zone = { id: "customs", kind: "CUSTOMS" };
 
 /**
  * The TRE agent's round trip: departs the island, crosses open water to the
@@ -52,15 +51,17 @@ export function ferryRoute(treId: TreId): Route {
 }
 
 /**
- * A sealed crate's one-way trip from the workshop that produced it to the
- * neutral customs hall, where it waits for Gate 2. It never enters another
- * island and never returns inward.
+ * A sealed crate's one-way trip from the workshop that produced it, through
+ * this island's own customs hall (Gate 2 — a local human decision), and
+ * directly to the researcher's quay. It never enters another island, never
+ * returns inward, and never touches a shared/central facility: there is no
+ * customs hall on the mainland.
  */
 export function egressRoute(treId: TreId): Route {
   return {
     id: `egress-${treId}`,
-    description: `a sealed crate travels from ${treId}'s workshop to customs`,
-    waypoints: [islandInteriorZone(treId), seaZone, customsZone],
+    description: `a sealed crate travels from ${treId}'s own customs hall to the researcher's quay`,
+    waypoints: [islandInteriorZone(treId), seaZone, mainlandZone],
   };
 }
 
@@ -138,20 +139,9 @@ export interface MainlandGeometry {
   readonly quayDock: Vec3;
 }
 
-export interface CustomsGeometry {
-  readonly center: Vec3;
-  readonly dock: Vec3;
-}
-
 export const mainlandGeometry: MainlandGeometry = {
   center: { x: 0, y: SEA_LEVEL_Y, z: -32 },
   quayDock: { x: 0, y: SEA_LEVEL_Y, z: -24 },
-};
-
-/** Customs sits near the mainland but is its own footprint, outside every island — see the world-metaphor table. */
-export const customsGeometry: CustomsGeometry = {
-  center: { x: 14, y: SEA_LEVEL_Y, z: -29 },
-  dock: { x: 12, y: SEA_LEVEL_Y, z: -24 },
 };
 
 export interface IslandGeometry {
@@ -161,12 +151,13 @@ export interface IslandGeometry {
   /** Where the island's own ferry departs from and returns to. The one point where anything crosses the wall inward. */
   readonly dock: Vec3;
   /**
-   * The TRE's own local disclosure-control checkpoint, built into the
-   * wall — see CLAUDE.md's world-metaphor table. Every sealed crate
-   * passes through here on its way out; it is a fixed structure, not a
-   * vessel, and a different point on the wall than the ferry's dock.
+   * This TRE's own customs hall — Gate 2, a human decision made locally by
+   * this island about whether it is comfortable releasing a given crate
+   * beyond its own control. Sits at the wall, a different point than the
+   * ferry's dock — see CLAUDE.md's world-metaphor table. There is no
+   * shared or central customs hall anywhere in the model.
    */
-  readonly egressAirlock: Vec3;
+  readonly customsHall: Vec3;
   /** Fixed exactly at the centre — honesty rule 2: the vault emits nothing, so it is never a waypoint on any path. */
   readonly vault: Vec3;
   readonly workshop: Vec3;
@@ -185,10 +176,13 @@ export function islandGeometry(treId: TreId, index: number, total: number): Isla
   };
 
   const towardMainland = vecNormalize(vecSub(mainlandGeometry.center, center));
-  const towardCustoms = vecNormalize(vecSub(customsGeometry.center, center));
   const sideways: Vec3 = { x: -towardMainland.z, y: 0, z: towardMainland.x };
+  // Blended with a lateral offset so it lands on a different point of the
+  // wall than the ferry's dock, while still generally facing the mainland
+  // side, since an approved crate ends up travelling that way too.
+  const towardCustomsHall = vecNormalize(vecAdd(towardMainland, vecScale(sideways, 0.6)));
   const dock = vecAdd(center, vecScale(towardMainland, ISLAND_WALL_RADIUS));
-  const egressAirlock = vecAdd(center, vecScale(towardCustoms, ISLAND_WALL_RADIUS));
+  const customsHall = vecAdd(center, vecScale(towardCustomsHall, ISLAND_WALL_RADIUS));
   const workshop = vecAdd(
     center,
     vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.3), vecScale(sideways, ISLAND_WALL_RADIUS * 0.35)),
@@ -198,7 +192,7 @@ export function islandGeometry(treId: TreId, index: number, total: number): Isla
     vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.6), vecScale(sideways, -ISLAND_WALL_RADIUS * 0.3)),
   );
 
-  return { treId, center, wallRadius: ISLAND_WALL_RADIUS, dock, egressAirlock, vault: center, workshop, harbourmasterOffice };
+  return { treId, center, wallRadius: ISLAND_WALL_RADIUS, dock, customsHall, vault: center, workshop, harbourmasterOffice };
 }
 
 /** The ferry's round trip in real coordinates: island dock → open water → mainland dock → open water → the same island dock. */
@@ -208,13 +202,25 @@ export function ferryPath(island: IslandGeometry): readonly Vec3[] {
 }
 
 /**
- * A sealed crate's path from the workshop to customs, real coordinates.
- * It leaves through the island's own egress airlock — the TRE's local
- * disclosure-control checkpoint — not through the ferry's dock; the two
- * are different, fixed points on the same wall. See CLAUDE.md's
- * world-metaphor table.
+ * A sealed crate's path from the workshop to the researcher's quay, real
+ * coordinates. It leaves through this island's own customs hall — Gate 2,
+ * a local human decision — not through the ferry's dock; the two are
+ * different, fixed points on the same wall. Once released, it travels
+ * directly to the mainland: there is no shared or central customs stop
+ * anywhere in the model. See CLAUDE.md's world-metaphor table.
  */
 export function egressPath(island: IslandGeometry): readonly Vec3[] {
-  const seaMidpoint = vecLerp(island.egressAirlock, customsGeometry.dock, 0.5);
-  return [island.workshop, island.egressAirlock, seaMidpoint, customsGeometry.dock];
+  const seaMidpoint = vecLerp(island.customsHall, mainlandGeometry.quayDock, 0.5);
+  return [island.workshop, island.customsHall, seaMidpoint, mainlandGeometry.quayDock];
+}
+
+/**
+ * The order a task actually moves through this island once it's here:
+ * approved at the harbourmaster's office (Gate 1), executed at the
+ * workshop, then checked at this island's own customs hall (Gate 2)
+ * before it may leave. The vault is deliberately absent — honesty rule 2:
+ * nothing whose origin is the vault ever travels anywhere.
+ */
+export function workflowPath(island: IslandGeometry): readonly Vec3[] {
+  return [island.harbourmasterOffice, island.workshop, island.customsHall];
 }
