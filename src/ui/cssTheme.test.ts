@@ -15,8 +15,8 @@ describe("hexToCssColor", () => {
 describe("themeCssVariables", () => {
   it("produces one --fsa- custom property per theme colour, derived from the same theme.ts values", () => {
     const vars = themeCssVariables();
-    expect(vars["--fsa-gate-amber"]).toBe("#d99a2b");
-    expect(vars["--fsa-vault-reserved"]).toBe("#7a2048");
+    expect(vars["--fsa-gate-amber"]).toBe("#f2a934");
+    expect(vars["--fsa-vault-reserved"]).toBe("#9c2f5c");
     expect(Object.keys(vars).length).toBeGreaterThan(5);
   });
 
