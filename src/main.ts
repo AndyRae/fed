@@ -87,6 +87,7 @@ declare global {
       readonly sim: typeof currentState;
       readonly cameraRig: typeof cameraRig;
       readonly flowController: typeof flowController;
+      readonly engine: typeof engine;
       readonly tours: {
         journeyOfATaskTour: typeof journeyOfATaskTour;
         theResultThatNeverLeftTour: typeof theResultThatNeverLeftTour;
@@ -102,5 +103,6 @@ window.ARCHIPELAGO = {
   },
   cameraRig,
   flowController,
+  engine,
   tours: { journeyOfATaskTour, theResultThatNeverLeftTour, playTour },
 };
