@@ -24,6 +24,16 @@ export interface FlowController {
   dispose(): void;
 }
 
+export interface FlowControllerOptions {
+  /**
+   * If true, treats the state source's event count at construction time as
+   * the starting watermark instead of 0, so pre-existing history isn't
+   * replayed. Used when recreating a flow controller against a state that
+   * already has a past — e.g. resuming the ambient demo after a tour.
+   */
+  readonly startFromCurrentEvents?: boolean;
+}
+
 interface Tween {
   readonly mesh: THREE.Object3D;
   readonly path: readonly Vec3[];
@@ -67,6 +77,7 @@ export function createFlowController(
   host: FlowSceneHost,
   islands: ReadonlyMap<TreId, IslandGeometry>,
   getState: () => SimState,
+  options: FlowControllerOptions = {},
 ): FlowController {
   const ferryMeshes = new Map<TreId, THREE.Object3D>();
   for (const [treId, geometry] of islands) {
@@ -77,7 +88,10 @@ export function createFlowController(
   }
 
   const tweens: Tween[] = [];
-  let lastEventCount = 0;
+  // A watermark, not a cursor: state sources that move non-monotonically
+  // (a tour stepping backward, then forward again) must never re-fire an
+  // event this has already seen, so this only ever increases.
+  let lastEventCount = options.startFromCurrentEvents ? getState().events.length : 0;
 
   function handleNewEvents(state: SimState): void {
     for (let i = lastEventCount; i < state.events.length; i++) {
@@ -107,7 +121,7 @@ export function createFlowController(
         }
       }
     }
-    lastEventCount = state.events.length;
+    lastEventCount = Math.max(lastEventCount, state.events.length);
   }
 
   const unsubscribe = host.onBeforeRender((deltaSeconds) => {

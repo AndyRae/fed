@@ -145,3 +145,99 @@ describe("createFlowController", () => {
     frame(1); // no-op: unsubscribed
   });
 });
+
+describe("scrubbing through precomputed states (tour stepping)", () => {
+  it("never re-fires an already-seen event when the state source moves backward then forward again", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+
+    let before = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }], pollIntervalTicks: 1 });
+    before = submitProject(before, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    before = submitTask(before, { id: "t1", projectId: "p1", treId: "tre-a" });
+    before = decideProjectApproval(before, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    const after = tick(before, 1); // TASK_COLLECTED fires; strictly more events than `before`
+
+    let current = after;
+    const controller = createFlowController(host, islands, () => current);
+    const ferry = (() => {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "FERRY") found = o;
+      });
+      return found!;
+    })();
+    const dock = islands.get("tre-a")!.dock;
+
+    // Let the one real departure finish and return home.
+    for (let i = 0; i < 40; i++) frame(0.1);
+    expect(ferry.position.x).toBeCloseTo(dock.x, 5);
+    expect(ferry.position.z).toBeCloseTo(dock.z, 5);
+
+    // Step back to a state with fewer events (as a tour's "prev" would)...
+    current = before;
+    frame(0.1);
+    // ...then forward again to the same later state — must not restart the trip.
+    current = after;
+    for (let i = 0; i < 5; i++) frame(0.1);
+    expect(ferry.position.x).toBeCloseTo(dock.x, 5);
+    expect(ferry.position.z).toBeCloseTo(dock.z, 5);
+
+    controller.dispose();
+  });
+});
+
+describe("startFromCurrentEvents", () => {
+  it("skips animating events that already happened before construction, but still animates new ones after", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ]);
+
+    let state = createInitialSimState({
+      seed: 1,
+      tres: [
+        { id: "tre-a", name: "A" },
+        { id: "tre-b", name: "B" },
+      ],
+      pollIntervalTicks: 1,
+    });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = submitTask(state, { id: "ta", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "tb", projectId: "p1", treId: "tre-b" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    // tre-a already collected before the flow controller exists.
+    state = tick(state, 1);
+
+    let current = state;
+    createFlowController(host, islands, () => current, { startFromCurrentEvents: true });
+
+    const ferryA = (() => {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "FERRY" && o.userData.treId === "tre-a") found = o;
+      });
+      return found!;
+    })();
+    const ferryB = (() => {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "FERRY" && o.userData.treId === "tre-b") found = o;
+      });
+      return found!;
+    })();
+    const dockA = islands.get("tre-a")!.dock;
+    const dockB = islands.get("tre-b")!.dock;
+
+    // tre-a's pre-existing collection must not be replayed.
+    for (let i = 0; i < 10; i++) frame(0.1);
+    expect(ferryA.position.x).toBeCloseTo(dockA.x, 5);
+    expect(ferryA.position.z).toBeCloseTo(dockA.z, 5);
+
+    // A genuinely new event (tre-b's approval + collection) after construction still animates.
+    current = decideProjectApproval(current, { projectId: "p1", treId: "tre-b", decision: "APPROVED", decidedBy: "H2" });
+    current = tick(current, 1);
+    frame(0.1);
+    expect(Math.hypot(ferryB.position.x - dockB.x, ferryB.position.z - dockB.z)).toBeGreaterThan(0);
+  });
+});
