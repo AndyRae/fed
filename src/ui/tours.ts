@@ -100,7 +100,7 @@ export const journeyOfATaskTour: Tour = {
     {
       id: "sealed-crate",
       cameraPose: { lookAtZoneId: "tre-a-interior" },
-      focusEntity: { kind: "task", taskId: "task-1" },
+      focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "The work finishes and is sealed into a crate. Nothing is released yet.",
         detail:
@@ -229,7 +229,7 @@ export const theResultThatNeverLeftTour: Tour = {
     {
       id: "sealed-crate",
       cameraPose: { lookAtZoneId: "tre-a-interior" },
-      focusEntity: { kind: "task", taskId: "task-1" },
+      focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
         plain: "The finished work is sealed into a crate and held at customs, awaiting a decision.",
         detail: "RUNNING → COMPLETE → AWAITING_OUTPUT_REVIEW; a Crate is sealed in HELD status.",
