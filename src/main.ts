@@ -49,8 +49,8 @@ let currentState = createInitialSimState({ seed: 1, tres: DEMO_TRES, pollInterva
 const engine = createEngine(container);
 const cameraRig = createCameraRig(engine);
 cameraRig.setPose({
-  position: { x: 0, y: 110, z: 130 },
-  target: { x: 0, y: 0, z: -10 },
+  position: { x: 0, y: 50, z: 60 },
+  target: { x: 0, y: 0, z: -5 },
 });
 
 engine.scene.add(buildWorld(currentState));
