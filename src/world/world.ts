@@ -1,10 +1,25 @@
 import * as THREE from "three";
-import type { SimState } from "../core/types.ts";
+import type { SimState, Tre, TreId } from "../core/types.ts";
 import { buildCustoms } from "./customs.ts";
 import { buildIsland } from "./island.ts";
-import { islandGeometry } from "./layout.ts";
+import { islandGeometry, type IslandGeometry } from "./layout.ts";
 import { buildMainland } from "./mainland.ts";
 import { buildSea } from "./sea.ts";
+
+/**
+ * The single source of truth for where each TRE's island actually sits,
+ * derived from an ordered TRE list. buildWorld and anything else that
+ * needs island positions (the flow controller, for instance) must call
+ * this rather than re-deriving index-based placement separately, so they
+ * can never drift apart.
+ */
+export function computeIslandGeometries(tres: readonly Tre[]): ReadonlyMap<TreId, IslandGeometry> {
+  const geometries = new Map<TreId, IslandGeometry>();
+  tres.forEach((tre, index) => {
+    geometries.set(tre.id, islandGeometry(tre.id, index, tres.length));
+  });
+  return geometries;
+}
 
 /**
  * Builds the whole static world from a SimState: sea, mainland, customs,
@@ -19,10 +34,10 @@ export function buildWorld(state: SimState): THREE.Object3D {
   group.add(buildMainland());
   group.add(buildCustoms());
 
-  state.tres.forEach((tre, index) => {
-    const geometry = islandGeometry(tre.id, index, state.tres.length);
-    group.add(buildIsland(geometry, tre));
-  });
+  const islandGeometries = computeIslandGeometries(state.tres);
+  for (const tre of state.tres) {
+    group.add(buildIsland(islandGeometries.get(tre.id)!, tre));
+  }
 
   return group;
 }

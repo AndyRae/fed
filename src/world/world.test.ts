@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { createInitialSimState } from "../sim/sim.ts";
-import { buildWorld } from "./world.ts";
+import { islandGeometry } from "./layout.ts";
+import { buildWorld, computeIslandGeometries } from "./world.ts";
 
 function findAllByKind(root: THREE.Object3D, kind: string): THREE.Object3D[] {
   const found: THREE.Object3D[] = [];
@@ -61,5 +62,37 @@ describe("buildWorld", () => {
     const before = JSON.parse(JSON.stringify(state));
     buildWorld(state);
     expect(state).toEqual(before);
+  });
+});
+
+describe("computeIslandGeometries", () => {
+  it("maps every TRE id to the same geometry islandGeometry would compute directly", () => {
+    const tres = [
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+      { id: "tre-c", name: "C" },
+    ];
+    const geometries = computeIslandGeometries(tres);
+    expect(geometries.size).toBe(3);
+    for (let i = 0; i < tres.length; i++) {
+      const tre = tres[i]!;
+      expect(geometries.get(tre.id)).toEqual(islandGeometry(tre.id, i, tres.length));
+    }
+  });
+
+  it("is what buildWorld itself uses — island footprints in the scene match this map exactly", () => {
+    const tres = [
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ];
+    const state = createInitialSimState({ seed: 1, tres });
+    const geometries = computeIslandGeometries(state.tres);
+    const world = buildWorld(state);
+    const lands = findAllByKind(world, "ISLAND_LAND");
+    for (const land of lands) {
+      const geometry = geometries.get(land.userData.treId as string)!;
+      expect(land.position.x).toBeCloseTo(geometry.center.x, 5);
+      expect(land.position.z).toBeCloseTo(geometry.center.z, 5);
+    }
   });
 });
