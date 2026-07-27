@@ -11,6 +11,7 @@ export const theme = {
     island: 0x2f6f5e,
     wall: 0x1c4a3d,
     ferry: 0x3f8a72,
+    workshop: 0x5c9c86,
   },
   /** Everything between trust zones: the sea and the mainland submission layer. */
   untrusted: {
