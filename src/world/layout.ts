@@ -96,3 +96,116 @@ export function connectsTwoIslands(route: Route): boolean {
   );
   return islandIds.size > 1;
 }
+
+// --- Real geometry -----------------------------------------------------
+//
+// Positions for actual rendering, additive to the symbolic Zone/Route
+// model above (which stays coordinate-free and is what the honesty tests
+// check topological legality against). Y is up; the sea sits at y = 0.
+
+export interface Vec3 {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+function vecAdd(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+function vecSub(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+function vecScale(a: Vec3, s: number): Vec3 {
+  return { x: a.x * s, y: a.y * s, z: a.z * s };
+}
+function vecLength(a: Vec3): number {
+  return Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+function vecNormalize(a: Vec3): Vec3 {
+  const len = vecLength(a);
+  return len === 0 ? { x: 0, y: 0, z: 0 } : vecScale(a, 1 / len);
+}
+function vecLerp(a: Vec3, b: Vec3, t: number): Vec3 {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t };
+}
+
+export const SEA_LEVEL_Y = 0;
+export const ISLAND_WALL_RADIUS = 9;
+export const ISLAND_RING_RADIUS = 45;
+
+export interface MainlandGeometry {
+  readonly center: Vec3;
+  readonly quayDock: Vec3;
+}
+
+export interface CustomsGeometry {
+  readonly center: Vec3;
+  readonly dock: Vec3;
+}
+
+export const mainlandGeometry: MainlandGeometry = {
+  center: { x: 0, y: SEA_LEVEL_Y, z: -60 },
+  quayDock: { x: 0, y: SEA_LEVEL_Y, z: -48 },
+};
+
+/** Customs sits near the mainland but is its own footprint, outside every island — see the world-metaphor table. */
+export const customsGeometry: CustomsGeometry = {
+  center: { x: 26, y: SEA_LEVEL_Y, z: -55 },
+  dock: { x: 22, y: SEA_LEVEL_Y, z: -48 },
+};
+
+export interface IslandGeometry {
+  readonly treId: TreId;
+  readonly center: Vec3;
+  readonly wallRadius: number;
+  /** Where the island's own ferry departs from and returns to. The only point where anything crosses the wall. */
+  readonly dock: Vec3;
+  /** Fixed exactly at the centre — honesty rule 2: the vault emits nothing, so it is never a waypoint on any path. */
+  readonly vault: Vec3;
+  readonly workshop: Vec3;
+  readonly harbourmasterOffice: Vec3;
+}
+
+/** Deterministic placement: same id/index/total always yields the same island. Islands fan out toward the mainland so no two walls overlap. */
+export function islandGeometry(treId: TreId, index: number, total: number): IslandGeometry {
+  const spreadDeg = total > 1 ? 110 : 0;
+  const angleDeg = total > 1 ? -spreadDeg / 2 + (spreadDeg * index) / (total - 1) : 0;
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const center: Vec3 = {
+    x: Math.sin(angleRad) * ISLAND_RING_RADIUS,
+    y: SEA_LEVEL_Y,
+    z: Math.cos(angleRad) * ISLAND_RING_RADIUS,
+  };
+
+  const towardMainland = vecNormalize(vecSub(mainlandGeometry.center, center));
+  const sideways: Vec3 = { x: -towardMainland.z, y: 0, z: towardMainland.x };
+  const dock = vecAdd(center, vecScale(towardMainland, ISLAND_WALL_RADIUS));
+  const workshop = vecAdd(
+    center,
+    vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.3), vecScale(sideways, ISLAND_WALL_RADIUS * 0.35)),
+  );
+  const harbourmasterOffice = vecAdd(
+    center,
+    vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.6), vecScale(sideways, -ISLAND_WALL_RADIUS * 0.3)),
+  );
+
+  return { treId, center, wallRadius: ISLAND_WALL_RADIUS, dock, vault: center, workshop, harbourmasterOffice };
+}
+
+/** The ferry's round trip in real coordinates: island dock → open water → mainland dock → open water → the same island dock. */
+export function ferryPath(island: IslandGeometry): readonly Vec3[] {
+  const seaMidpoint = vecLerp(island.dock, mainlandGeometry.quayDock, 0.5);
+  return [island.dock, seaMidpoint, mainlandGeometry.quayDock, seaMidpoint, island.dock];
+}
+
+/**
+ * A sealed crate's path from the workshop to customs, real coordinates.
+ * It is carried out by the island's own ferry on a later departure — the
+ * ferry is "the only vessel that touches an island" (world-metaphor
+ * table), so this path still starts by passing through the island's dock,
+ * not by leaving the wall from an arbitrary point.
+ */
+export function egressPath(island: IslandGeometry): readonly Vec3[] {
+  const seaMidpoint = vecLerp(island.dock, customsGeometry.dock, 0.5);
+  return [island.workshop, island.dock, seaMidpoint, customsGeometry.dock];
+}
