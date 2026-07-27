@@ -131,7 +131,7 @@ function vecLerp(a: Vec3, b: Vec3, t: number): Vec3 {
 
 export const SEA_LEVEL_Y = 0;
 export const ISLAND_WALL_RADIUS = 9;
-export const ISLAND_RING_RADIUS = 45;
+export const ISLAND_RING_RADIUS = 24;
 
 export interface MainlandGeometry {
   readonly center: Vec3;
@@ -144,14 +144,14 @@ export interface CustomsGeometry {
 }
 
 export const mainlandGeometry: MainlandGeometry = {
-  center: { x: 0, y: SEA_LEVEL_Y, z: -60 },
-  quayDock: { x: 0, y: SEA_LEVEL_Y, z: -48 },
+  center: { x: 0, y: SEA_LEVEL_Y, z: -32 },
+  quayDock: { x: 0, y: SEA_LEVEL_Y, z: -24 },
 };
 
 /** Customs sits near the mainland but is its own footprint, outside every island — see the world-metaphor table. */
 export const customsGeometry: CustomsGeometry = {
-  center: { x: 26, y: SEA_LEVEL_Y, z: -55 },
-  dock: { x: 22, y: SEA_LEVEL_Y, z: -48 },
+  center: { x: 14, y: SEA_LEVEL_Y, z: -29 },
+  dock: { x: 12, y: SEA_LEVEL_Y, z: -24 },
 };
 
 export interface IslandGeometry {
