@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { buildRoutes, connectsTwoIslands, egressRoute, ferryRoute, isLegalRoute, vaultZone } from "./layout.ts";
+import {
+  buildRoutes,
+  connectsTwoIslands,
+  customsGeometry,
+  egressPath,
+  egressRoute,
+  ferryPath,
+  ferryRoute,
+  islandGeometry,
+  isLegalRoute,
+  mainlandGeometry,
+  vaultZone,
+  type Vec3,
+} from "./layout.ts";
+
+function distance(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
 
 describe("ferryRoute", () => {
   it("starts and ends at the same island's interior — the ferry only ever returns home", () => {
@@ -105,5 +122,94 @@ describe("honesty rule 6: islands are mutually invisible", () => {
       ],
     };
     expect(connectsTwoIslands(illegal)).toBe(true);
+  });
+});
+
+describe("real geometry: islandGeometry", () => {
+  const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
+
+  it("places the vault exactly at the island's centre — honesty rule 2", () => {
+    for (const island of islands) {
+      expect(island.vault).toEqual(island.center);
+    }
+  });
+
+  it("places the dock exactly on the wall boundary", () => {
+    for (const island of islands) {
+      expect(distance(island.dock, island.center)).toBeCloseTo(island.wallRadius, 5);
+    }
+  });
+
+  it("keeps the workshop and harbourmaster's office inside the wall", () => {
+    for (const island of islands) {
+      expect(distance(island.workshop, island.center)).toBeLessThan(island.wallRadius);
+      expect(distance(island.harbourmasterOffice, island.center)).toBeLessThan(island.wallRadius);
+    }
+  });
+
+  it("never overlaps another island's wall", () => {
+    for (let i = 0; i < islands.length; i++) {
+      for (let j = i + 1; j < islands.length; j++) {
+        const a = islands[i]!;
+        const b = islands[j]!;
+        expect(distance(a.center, b.center)).toBeGreaterThan(a.wallRadius + b.wallRadius);
+      }
+    }
+  });
+
+  it("is deterministic for the same id, index, and total", () => {
+    expect(islandGeometry("tre-a", 0, 3)).toEqual(islandGeometry("tre-a", 0, 3));
+  });
+});
+
+describe("real geometry: ferryPath", () => {
+  const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
+
+  it("starts and ends at the departing island's own dock", () => {
+    for (const island of islands) {
+      const path = ferryPath(island);
+      expect(path[0]).toEqual(island.dock);
+      expect(path[path.length - 1]).toEqual(island.dock);
+    }
+  });
+
+  it("passes through the mainland's dock", () => {
+    for (const island of islands) {
+      expect(ferryPath(island)).toContainEqual(mainlandGeometry.quayDock);
+    }
+  });
+
+  it("never passes through another island's wall — honesty rule 1", () => {
+    for (const island of islands) {
+      const others = islands.filter((i) => i.treId !== island.treId);
+      for (const point of ferryPath(island)) {
+        for (const other of others) {
+          expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);
+        }
+      }
+    }
+  });
+});
+
+describe("real geometry: egressPath", () => {
+  const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
+
+  it("starts at the island's workshop and ends at customs, never re-entering an island", () => {
+    for (const island of islands) {
+      const path = egressPath(island);
+      expect(path[0]).toEqual(island.workshop);
+      expect(path[path.length - 1]).toEqual(customsGeometry.dock);
+    }
+  });
+
+  it("never passes through another island's wall — honesty rule 1 and 6", () => {
+    for (const island of islands) {
+      const others = islands.filter((i) => i.treId !== island.treId);
+      for (const point of egressPath(island)) {
+        for (const other of others) {
+          expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);
+        }
+      }
+    }
   });
 });
