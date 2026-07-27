@@ -50,6 +50,7 @@ alternatives per-feature, because the geography *is* the argument:
 | The workshop | TES runner (Funnel in the reference implementation) | Where containers execute, inside the wall |
 | The vault | The sensitive data | Fixed at the island's centre; nothing originating here ever boards a ferry |
 | A sealed crate | A result awaiting review | Produced by the workshop; sealed until a human decision |
+| The egress airlock (per island) | The TRE's own local disclosure-control check | An automated technical checkpoint built into the wall; every sealed crate passes through it before crossing to the shared customs hall. It is not a vessel and not a third gate — the sole human decision on this crate is still Gate 2, at the customs hall |
 | The customs hall | Egress service | Outside the islands; crates are held here |
 | The customs inspector | Egress manager / output review | Gate 2: a human approves or refuses release; the stamp is the event |
 
@@ -81,8 +82,9 @@ src/
   decisions.
 - `src/world` may read `SimState` but never mutates it.
 - `src/world/layout.ts` is the single source of truth for geography: island
-  positions, wall bounds, ferry routes, dock anchors. Cross-zone coordinates
-  live nowhere else.
+  positions, wall bounds, ferry routes, dock anchors, and each island's
+  egress airlock (the crate's own crossing point, distinct from the ferry's
+  dock). Cross-zone coordinates live nowhere else.
 - `src/ui/tours.ts` is the single source of truth for tours (see Tour
   mechanism). Tours are data, not code.
 - The browser debugging surface is `window.ARCHIPELAGO`: simulation, event
@@ -132,7 +134,10 @@ the same review as prose.
    unambiguous human-decision marker), with a queue that visibly holds until
    the decision lands. Never depict either gate as an automatic scanner,
    filter, or conveyor. Speeding through the wait for pacing is allowed only
-   in scaled time that the UI discloses.
+   in scaled time that the UI discloses. The egress airlock (per island) is
+   not exempt from this by being a third gate — it isn't one. It is a
+   non-decisional automated technical checkpoint; the crate's only disclosure
+   *decision* is still Gate 2, made by the customs inspector.
 4. **Output review is a decision, not a transformation.** A crate is approved
    or refused. It is never "cleaned", shrunk, or laundered by the customs
    hall. If a tour wants to explain disclosure control heuristics, it does so
