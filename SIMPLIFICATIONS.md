@@ -39,3 +39,15 @@ in for identity-checked, audited decisions in the real system.
 The researcher's-quay aggregation of released results across TREs is
 computed by reading released crates for a project; it is not a distinct
 simulation stage with its own state machine.
+
+## A sealed crate's journey is its own animation, not literally inside the ferry mesh
+
+The world-metaphor table says the ferry is "the only vessel that touches
+an island." A sealed crate leaving the workshop is, in the reference
+story, carried out by that same ferry on a later departure. This model
+animates the crate as its own mesh travelling from the workshop through
+the island's dock to customs (`egressPath` in `src/world/layout.ts`) —
+the same single wall-crossing point the ferry uses — rather than
+simulating the ferry picking the crate up and carrying it. The crossing
+point is honest; which mesh visibly carries the box is a rendering
+simplification. See `src/engine/flowController.ts`.
