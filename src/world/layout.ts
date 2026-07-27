@@ -158,8 +158,15 @@ export interface IslandGeometry {
   readonly treId: TreId;
   readonly center: Vec3;
   readonly wallRadius: number;
-  /** Where the island's own ferry departs from and returns to. The only point where anything crosses the wall. */
+  /** Where the island's own ferry departs from and returns to. The one point where anything crosses the wall inward. */
   readonly dock: Vec3;
+  /**
+   * The TRE's own local disclosure-control checkpoint, built into the
+   * wall — see CLAUDE.md's world-metaphor table. Every sealed crate
+   * passes through here on its way out; it is a fixed structure, not a
+   * vessel, and a different point on the wall than the ferry's dock.
+   */
+  readonly egressAirlock: Vec3;
   /** Fixed exactly at the centre — honesty rule 2: the vault emits nothing, so it is never a waypoint on any path. */
   readonly vault: Vec3;
   readonly workshop: Vec3;
@@ -178,8 +185,10 @@ export function islandGeometry(treId: TreId, index: number, total: number): Isla
   };
 
   const towardMainland = vecNormalize(vecSub(mainlandGeometry.center, center));
+  const towardCustoms = vecNormalize(vecSub(customsGeometry.center, center));
   const sideways: Vec3 = { x: -towardMainland.z, y: 0, z: towardMainland.x };
   const dock = vecAdd(center, vecScale(towardMainland, ISLAND_WALL_RADIUS));
+  const egressAirlock = vecAdd(center, vecScale(towardCustoms, ISLAND_WALL_RADIUS));
   const workshop = vecAdd(
     center,
     vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.3), vecScale(sideways, ISLAND_WALL_RADIUS * 0.35)),
@@ -189,7 +198,7 @@ export function islandGeometry(treId: TreId, index: number, total: number): Isla
     vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.6), vecScale(sideways, -ISLAND_WALL_RADIUS * 0.3)),
   );
 
-  return { treId, center, wallRadius: ISLAND_WALL_RADIUS, dock, vault: center, workshop, harbourmasterOffice };
+  return { treId, center, wallRadius: ISLAND_WALL_RADIUS, dock, egressAirlock, vault: center, workshop, harbourmasterOffice };
 }
 
 /** The ferry's round trip in real coordinates: island dock → open water → mainland dock → open water → the same island dock. */
@@ -200,12 +209,12 @@ export function ferryPath(island: IslandGeometry): readonly Vec3[] {
 
 /**
  * A sealed crate's path from the workshop to customs, real coordinates.
- * It is carried out by the island's own ferry on a later departure — the
- * ferry is "the only vessel that touches an island" (world-metaphor
- * table), so this path still starts by passing through the island's dock,
- * not by leaving the wall from an arbitrary point.
+ * It leaves through the island's own egress airlock — the TRE's local
+ * disclosure-control checkpoint — not through the ferry's dock; the two
+ * are different, fixed points on the same wall. See CLAUDE.md's
+ * world-metaphor table.
  */
 export function egressPath(island: IslandGeometry): readonly Vec3[] {
-  const seaMidpoint = vecLerp(island.dock, customsGeometry.dock, 0.5);
-  return [island.workshop, island.dock, seaMidpoint, customsGeometry.dock];
+  const seaMidpoint = vecLerp(island.egressAirlock, customsGeometry.dock, 0.5);
+  return [island.workshop, island.egressAirlock, seaMidpoint, customsGeometry.dock];
 }

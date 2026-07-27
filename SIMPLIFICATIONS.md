@@ -40,14 +40,24 @@ The researcher's-quay aggregation of released results across TREs is
 computed by reading released crates for a project; it is not a distinct
 simulation stage with its own state machine.
 
-## A sealed crate's journey is its own animation, not literally inside the ferry mesh
+## A sealed crate's journey is its own animation
 
-The world-metaphor table says the ferry is "the only vessel that touches
-an island." A sealed crate leaving the workshop is, in the reference
-story, carried out by that same ferry on a later departure. This model
-animates the crate as its own mesh travelling from the workshop through
-the island's dock to customs (`egressPath` in `src/world/layout.ts`) —
-the same single wall-crossing point the ferry uses — rather than
-simulating the ferry picking the crate up and carrying it. The crossing
-point is honest; which mesh visibly carries the box is a rendering
-simplification. See `src/engine/flowController.ts`.
+A sealed crate travels from the workshop to customs as its own mesh
+(`egressPath` in `src/world/layout.ts`), through the island's egress
+airlock rather than a person or vessel physically carrying it. The
+crossing point (the airlock, a fixed structure in the wall — see the
+world-metaphor table) is honest; the fact that nothing visibly "holds"
+the crate en route is a rendering simplification. See
+`src/engine/flowController.ts`.
+
+## The egress airlock is not a distinct protocol/state-machine stage
+
+The TRE's local disclosure-control check (the egress airlock — see
+CLAUDE.md's world-metaphor table, added after a correction sourced from
+docs.federated-analytics.ac.uk) is depicted in the world/visual layer as
+a real checkpoint on every crate's route, but it is not modelled as a
+separate `TaskStatus` in `src/core/types.ts`. A crate transitions
+directly from `COMPLETE` to `AWAITING_OUTPUT_REVIEW`; the airlock is
+part of the crate's geometry and journey, not a tracked simulation
+state. The sole disclosure *decision* remains the human customs
+inspector's, at Gate 2 — matching honesty rules 3 and 4.

@@ -140,6 +140,13 @@ describe("real geometry: islandGeometry", () => {
     }
   });
 
+  it("places the egress airlock exactly on the wall boundary too, at a different point than the ferry's dock", () => {
+    for (const island of islands) {
+      expect(distance(island.egressAirlock, island.center)).toBeCloseTo(island.wallRadius, 5);
+      expect(distance(island.egressAirlock, island.dock)).toBeGreaterThan(0.5);
+    }
+  });
+
   it("keeps the workshop and harbourmaster's office inside the wall", () => {
     for (const island of islands) {
       expect(distance(island.workshop, island.center)).toBeLessThan(island.wallRadius);
@@ -199,6 +206,13 @@ describe("real geometry: egressPath", () => {
       const path = egressPath(island);
       expect(path[0]).toEqual(island.workshop);
       expect(path[path.length - 1]).toEqual(customsGeometry.dock);
+    }
+  });
+
+  it("crosses the wall through the island's own egress airlock, not the ferry's dock", () => {
+    for (const island of islands) {
+      expect(egressPath(island)).toContainEqual(island.egressAirlock);
+      expect(egressPath(island)).not.toContainEqual(island.dock);
     }
   });
 
