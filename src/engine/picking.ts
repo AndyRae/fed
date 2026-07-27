@@ -47,21 +47,36 @@ export interface PickerHandle {
   dispose(): void;
 }
 
-function buildWireframe(mesh: THREE.Object3D, opacity: number): THREE.LineSegments | null {
-  if (!(mesh instanceof THREE.Mesh) || !mesh.geometry) return null;
-  const edges = new THREE.EdgesGeometry(mesh.geometry, 25);
-  const material = new THREE.LineBasicMaterial({ color: HIGHLIGHT_COLOR, transparent: true, opacity, depthTest: false });
-  const lines = new THREE.LineSegments(edges, material);
-  lines.renderOrder = 999;
+/**
+ * A mesh gets an EdgesGeometry wireframe of its exact silhouette. A route
+ * line (see src/world/routes.ts) has no "edges" in that sense, so it gets a
+ * brighter duplicate of the same path instead — either way the highlight
+ * owns its own geometry (cloned or freshly built), never a shared
+ * reference, so disposing it later can never affect the original object.
+ */
+function buildWireframe(object: THREE.Object3D, opacity: number): THREE.Line | null {
+  let highlight: THREE.Line | null = null;
+  if (object instanceof THREE.Mesh && object.geometry) {
+    const edges = new THREE.EdgesGeometry(object.geometry, 25);
+    const material = new THREE.LineBasicMaterial({ color: HIGHLIGHT_COLOR, transparent: true, opacity, depthTest: false });
+    highlight = new THREE.LineSegments(edges, material);
+    highlight.scale.multiplyScalar(HIGHLIGHT_SCALE);
+  } else if (object instanceof THREE.Line && object.geometry) {
+    const material = new THREE.LineBasicMaterial({ color: HIGHLIGHT_COLOR, transparent: true, opacity, depthTest: false, linewidth: 3 });
+    highlight = new THREE.Line(object.geometry.clone(), material);
+  }
+  if (!highlight) return null;
+
+  highlight.renderOrder = 999;
   const position = new THREE.Vector3();
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
-  mesh.updateWorldMatrix(true, false);
-  mesh.matrixWorld.decompose(position, quaternion, scale);
-  lines.position.copy(position);
-  lines.quaternion.copy(quaternion);
-  lines.scale.copy(scale).multiplyScalar(HIGHLIGHT_SCALE);
-  return lines;
+  object.updateWorldMatrix(true, false);
+  object.matrixWorld.decompose(position, quaternion, scale);
+  highlight.position.copy(position);
+  highlight.quaternion.copy(quaternion);
+  if (object instanceof THREE.Mesh) highlight.scale.multiply(scale);
+  return highlight;
 }
 
 /**
@@ -79,8 +94,8 @@ export function createPicker(options: PickerOptions): PickerHandle {
   const highlightGroup = new THREE.Group();
   engine.scene.add(highlightGroup);
 
-  let hoverWireframe: THREE.LineSegments | null = null;
-  let selectWireframe: THREE.LineSegments | null = null;
+  let hoverWireframe: THREE.Line | null = null;
+  let selectWireframe: THREE.Line | null = null;
   let hovered: THREE.Object3D | null = null;
   let selected: THREE.Object3D | null = null;
   let lastHoverCheck = 0;
