@@ -195,11 +195,117 @@ body.fsa-touring #fsa-hud-top:focus-within {
   background: var(--fsa-gate-amber, #d99a2b);
 }
 
+/* --------------------------------- labels --------------------------------- */
+
+.fsa-label-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fsa-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--fsa-font);
+  font-size: 11px;
+  color: var(--fsa-ink);
+  background: var(--fsa-bg-panel);
+  border: 1px solid var(--fsa-line);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* ------------------------------- inspector -------------------------------- */
+
+#fsa-inspector-layer {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 5;
+  width: min(320px, calc(100% - 32px));
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  transition:
+    opacity var(--fsa-dur) ease,
+    transform var(--fsa-dur) ease;
+}
+#fsa-inspector-layer.is-open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.fsa-inspector {
+  position: relative;
+  font-family: var(--fsa-font);
+  color: var(--fsa-ink);
+  background: var(--fsa-bg-panel);
+  border: 1px solid var(--fsa-line);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.fsa-inspector__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 7px;
+  line-height: 1;
+}
+
+.fsa-inspector__title {
+  margin: 0 24px 6px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fsa-inspector__plain {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fsa-inspector__context {
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fsa-inspector__context-line {
+  font-size: 11px;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-inspector__detail {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--fsa-ink-faint);
+}
+.fsa-inspector__detail summary {
+  cursor: pointer;
+  color: var(--fsa-ink);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fsa-inspector__detail p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
 /* ------------------------------ reduced motion ---------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   #fsa-hud-top,
-  .fsa-tour-card {
+  .fsa-tour-card,
+  #fsa-inspector-layer {
     transition: none;
   }
 }
