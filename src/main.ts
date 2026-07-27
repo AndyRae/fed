@@ -1,11 +1,19 @@
+import "./ui/styles.css";
+
 import type { TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
 import { createFlowController } from "./engine/flowController.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
+import { applyThemeCssVariables } from "./ui/cssTheme.ts";
+import { mountHud } from "./ui/hud.ts";
+import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
 import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
+import type { Tour } from "./ui/tourTypes.ts";
 import { buildWorld, computeIslandGeometries } from "./world/world.ts";
+
+applyThemeCssVariables();
 
 const container = document.querySelector<HTMLDivElement>("#app");
 if (!container) {
@@ -39,6 +47,9 @@ cameraRig.setPose({
 
 engine.scene.add(buildWorld(currentState));
 
+// Shared by the ambient demo's flow controller and every tour's camera
+// resolver, so a TRE's rendered position always matches whichever one is
+// currently addressing it — see world.ts's computeIslandGeometries doc.
 const islandGeometries = computeIslandGeometries(DEMO_TRES);
 const flowController = createFlowController(engine, islandGeometries, () => currentState);
 
@@ -46,9 +57,9 @@ const flowController = createFlowController(engine, islandGeometries, () => curr
  * The click-to-decide UI for Gate 1/Gate 2 doesn't exist yet — this
  * free-roam ambient demo stands in for it with a delayed timer, so the
  * queue still visibly holds rather than approving/releasing instantly
- * (honesty rule 3). The two flagship tours (not yet wired to the camera)
- * are where the refusal paths are actually demonstrated — this demo is
- * for proving the engine renders and animates correctly.
+ * (honesty rule 3). The two flagship tours are where the refusal paths are
+ * actually demonstrated — this demo is for proving the engine renders and
+ * animates correctly outside a tour.
  */
 function scheduleProjectApproval(treId: TreId, decidedBy: string, delayMs: number): void {
   setTimeout(() => {
@@ -75,12 +86,48 @@ function scheduleNewOutputReviews(): void {
   }
 }
 
-setInterval(() => {
-  currentState = tick(currentState, 1);
-  scheduleNewOutputReviews();
-}, 400);
+let ambientTimer: number | null = null;
+function resumeAmbientDemo(): void {
+  if (ambientTimer != null) return;
+  ambientTimer = window.setInterval(() => {
+    currentState = tick(currentState, 1);
+    scheduleNewOutputReviews();
+  }, 400);
+}
+function pauseAmbientDemo(): void {
+  if (ambientTimer == null) return;
+  window.clearInterval(ambientTimer);
+  ambientTimer = null;
+}
+resumeAmbientDemo();
 
-/** The browser debugging surface — see CLAUDE.md "Architecture". Event bus lands with the HUD/inspector pass. */
+/**
+ * Starts a tour: pauses the ambient demo and free-roam camera controls so
+ * the tour card's cuts aren't fighting either one, and hands the camera to
+ * the tour card until it's dismissed. Live ferry/crate motion driven by a
+ * tour's own events (rather than the ambient demo's) is a follow-up — this
+ * pass wires the camera and narration.
+ */
+function startTour(tour: Tour): void {
+  pauseAmbientDemo();
+  cameraRig.controls.enabled = false;
+  startTourCard(document.body, {
+    tour,
+    islands: islandGeometries,
+    onCameraPose: (pose) => cameraRig.setPose(pose),
+    onExit: () => {
+      cameraRig.controls.enabled = true;
+      resumeAmbientDemo();
+    },
+  });
+}
+
+mountHud(document.body, {
+  tours: [journeyOfATaskTour, theResultThatNeverLeftTour],
+  onStartTour: startTour,
+});
+
+/** The browser debugging surface — see CLAUDE.md "Architecture". Event bus lands with the inspector pass. */
 declare global {
   interface Window {
     ARCHIPELAGO: {
