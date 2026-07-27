@@ -36,29 +36,29 @@ export function resolveCameraPose(pose: CameraPose, islands: ReadonlyMap<TreId, 
     case "overview":
       return OVERVIEW_POSE;
     case "mainland":
-      return poseLookingAt(mainlandGeometry.center, 16, 12);
+      return poseLookingAt(mainlandGeometry.center, 24, 18);
     case "customs":
-      return poseLookingAt(customsGeometry.center, 10, 8);
+      return poseLookingAt(customsGeometry.center, 13, 10);
     case "sea": {
       const island = requireIsland(islands, pose.treId);
       const target = midpoint(island.dock, mainlandGeometry.quayDock);
-      return poseLookingAt(target, 11, 10);
+      return poseLookingAt(target, 15, 13);
     }
     case "tre": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.center, 15, 11);
+      return poseLookingAt(island.center, 22, 16);
     }
     case "treGate1": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.harbourmasterOffice, 6, 5);
+      return poseLookingAt(island.harbourmasterOffice, 9, 8);
     }
     case "treWorkshop": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.workshop, 6, 5);
+      return poseLookingAt(island.workshop, 9, 8);
     }
     case "treVault": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.vault, 5, 4);
+      return poseLookingAt(island.vault, 7, 6);
     }
   }
 }
