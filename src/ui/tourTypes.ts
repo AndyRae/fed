@@ -56,6 +56,8 @@ export interface Narration {
 
 export interface TourStop {
   readonly id: string;
+  /** Short human-readable chapter name for the HUD's tour card, e.g. "Gate 1: project approval". */
+  readonly title: string;
   readonly cameraPose: CameraPose;
   readonly focusEntity: FocusEntity;
   readonly narration: Narration;

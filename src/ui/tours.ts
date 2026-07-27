@@ -23,6 +23,7 @@ export const journeyOfATaskTour: Tour = {
   stops: [
     {
       id: "submit-project",
+      title: "The researcher submits",
       cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-diabetes-cohort" },
       narration: {
@@ -43,6 +44,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "submit-task",
+      title: "The work travels too",
       cameraPose: { kind: "mainland" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
@@ -58,6 +60,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "gate-1-approval",
+      title: "Gate 1: project approval",
       cameraPose: { kind: "treGate1", treId: "tre-a" },
       focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
@@ -77,6 +80,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "ferry-collects",
+      title: "The ferry collects",
       cameraPose: { kind: "sea", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
@@ -89,6 +93,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "workshop-executes",
+      title: "The workshop executes",
       cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
@@ -99,6 +104,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "sealed-crate",
+      title: "A crate is sealed",
       cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
@@ -110,6 +116,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "gate-2-review",
+      title: "Gate 2: output review",
       cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
@@ -124,6 +131,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "release",
+      title: "Released",
       cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
@@ -134,6 +142,7 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "aggregation-at-the-quay",
+      title: "Aggregation at the quay",
       cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-diabetes-cohort" },
       narration: {
@@ -159,6 +168,7 @@ export const theResultThatNeverLeftTour: Tour = {
   stops: [
     {
       id: "submit-project",
+      title: "The researcher submits",
       cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-imaging-study" },
       narration: {
@@ -177,6 +187,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "submit-task",
+      title: "The work travels too",
       cameraPose: { kind: "mainland" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
@@ -190,6 +201,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "gate-1-approval",
+      title: "Gate 1 approves",
       cameraPose: { kind: "treGate1", treId: "tre-a" },
       focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
@@ -208,6 +220,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "ferry-collects",
+      title: "The ferry collects",
       cameraPose: { kind: "sea", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
@@ -218,6 +231,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "workshop-executes",
+      title: "The workshop executes",
       cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "task", taskId: "task-1" },
       narration: {
@@ -228,6 +242,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "sealed-crate",
+      title: "A crate is sealed",
       cameraPose: { kind: "treWorkshop", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
@@ -238,6 +253,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "gate-2-refuses",
+      title: "Gate 2 refuses",
       cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
@@ -252,6 +268,7 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "crate-retained",
+      title: "The crate is retained",
       cameraPose: { kind: "customs" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
