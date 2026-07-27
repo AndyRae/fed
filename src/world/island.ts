@@ -1,11 +1,53 @@
 import * as THREE from "three";
-import type { Tre } from "../core/types.ts";
+import type { Tre, TreId } from "../core/types.ts";
 import { theme } from "../core/theme.ts";
+import { createRng } from "../sim/rng.ts";
 import type { IslandGeometry } from "./layout.ts";
 import { SEA_LEVEL_Y } from "./layout.ts";
 
 const ISLAND_HEIGHT = 1.4;
 const WALL_TUBE_RADIUS = 0.6;
+
+/** A short, deterministic string hash — turns a TreId into an RNG seed so each island's shape is stable across reloads without needing to thread a seed through IslandGeometry. */
+function hashTreId(treId: TreId): number {
+  let hash = 0;
+  for (let i = 0; i < treId.length; i++) {
+    hash = (hash * 31 + treId.charCodeAt(i)) | 0;
+  }
+  return hash >>> 0;
+}
+
+/**
+ * A distinct, irregular island silhouette per TRE — every island looks
+ * like its own island, not a copy-pasted disc. Points are placed at fixed
+ * angle steps with only the radius randomised, so the outline can never
+ * self-intersect, and every radius stays within [0.7, 0.96] of wallRadius
+ * so the shape is always strictly inside the (still circular, still
+ * inviolable) wall — see honesty rule 1 and the wall/non-overlap tests in
+ * layout.test.ts, which reason about wallRadius as a hard circular bound.
+ */
+function buildIslandLandGeometry(treId: TreId, wallRadius: number): THREE.BufferGeometry {
+  const rng = createRng(hashTreId(treId));
+  const pointCount = 9 + Math.floor(rng() * 3);
+  const points: THREE.Vector2[] = [];
+  for (let i = 0; i < pointCount; i++) {
+    const angle = (i / pointCount) * Math.PI * 2;
+    const radius = wallRadius * (0.7 + rng() * 0.26);
+    points.push(new THREE.Vector2(Math.cos(angle) * radius, Math.sin(angle) * radius));
+  }
+  const shape = new THREE.Shape(points);
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: ISLAND_HEIGHT,
+    bevelEnabled: true,
+    bevelThickness: 0.35,
+    bevelSize: 0.35,
+    bevelSegments: 2,
+    curveSegments: 10,
+  });
+  // Lay the extrusion flat: shape's XY plane becomes XZ, extrusion (Z) becomes world-up (Y).
+  geometry.rotateX(-Math.PI / 2);
+  return geometry;
+}
 
 /**
  * One island (TRE): a separate trust zone with a hard perimeter. The
@@ -18,10 +60,10 @@ export function buildIsland(geometry: IslandGeometry, tre: Tre): THREE.Object3D 
   group.userData.treId = tre.id;
 
   const land = new THREE.Mesh(
-    new THREE.CylinderGeometry(geometry.wallRadius * 0.92, geometry.wallRadius, ISLAND_HEIGHT, 32),
+    buildIslandLandGeometry(tre.id, geometry.wallRadius),
     new THREE.MeshStandardMaterial({ color: theme.trust.island, roughness: 0.85 }),
   );
-  land.position.set(geometry.center.x, SEA_LEVEL_Y + ISLAND_HEIGHT / 2, geometry.center.z);
+  land.position.set(geometry.center.x, SEA_LEVEL_Y, geometry.center.z);
   land.userData.kind = "ISLAND_LAND";
   land.userData.treId = tre.id;
   group.add(land);
