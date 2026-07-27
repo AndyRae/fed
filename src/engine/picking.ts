@@ -42,6 +42,8 @@ export interface PickerOptions {
 export interface PickerHandle {
   /** Programmatically sets or clears the persistent selection highlight. */
   setSelected(object: THREE.Object3D | null): void;
+  /** Turns pointer handling on/off — e.g. disabled while a tour has taken over the camera and narration. Disabling clears any current hover/selection. */
+  setEnabled(enabled: boolean): void;
   dispose(): void;
 }
 
@@ -82,6 +84,7 @@ export function createPicker(options: PickerOptions): PickerHandle {
   let hovered: THREE.Object3D | null = null;
   let selected: THREE.Object3D | null = null;
   let lastHoverCheck = 0;
+  let enabled = true;
 
   let downX = 0;
   let downY = 0;
@@ -135,6 +138,7 @@ export function createPicker(options: PickerOptions): PickerHandle {
   }
 
   function onPointerMove(event: PointerEvent): void {
+    if (!enabled) return;
     const now = performance.now();
     if (now - lastHoverCheck < HOVER_THROTTLE_MS) return;
     lastHoverCheck = now;
@@ -146,12 +150,14 @@ export function createPicker(options: PickerOptions): PickerHandle {
   }
 
   function onPointerDown(event: PointerEvent): void {
+    if (!enabled) return;
     downX = event.clientX;
     downY = event.clientY;
     downAt = performance.now();
   }
 
   function onPointerUp(event: PointerEvent): void {
+    if (!enabled) return;
     const dx = event.clientX - downX;
     const dy = event.clientY - downY;
     const travelled = Math.hypot(dx, dy);
@@ -167,8 +173,19 @@ export function createPicker(options: PickerOptions): PickerHandle {
   dom.addEventListener("pointerdown", onPointerDown);
   dom.addEventListener("pointerup", onPointerUp);
 
+  function setEnabled(next: boolean): void {
+    enabled = next;
+    if (!enabled) {
+      hovered = null;
+      setHoverWireframe(null);
+      setSelected(null);
+      options.onSelect?.(null);
+    }
+  }
+
   return {
     setSelected,
+    setEnabled,
     dispose() {
       dom.removeEventListener("pointermove", onPointerMove);
       dom.removeEventListener("pointerdown", onPointerDown);

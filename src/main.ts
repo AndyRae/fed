@@ -1,13 +1,17 @@
 import "./ui/styles.css";
 
+import { explanationForKind } from "./core/explanations.ts";
 import type { SimState, TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
 import { createFlowController, type FlowController } from "./engine/flowController.ts";
+import { createLabels } from "./engine/labels.ts";
+import { createPicker } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createRng } from "./sim/rng.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
 import { mountHud } from "./ui/hud.ts";
+import { mountInspectorPanel } from "./ui/inspectorPanel.ts";
 import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
 import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
@@ -53,13 +57,52 @@ cameraRig.setPose({
   target: { x: 0, y: 0, z: -5 },
 });
 
-engine.scene.add(buildWorld(currentState));
+const worldGroup = buildWorld(currentState);
+engine.scene.add(worldGroup);
 
 // Shared by the ambient demo's flow controller and every tour's camera
 // resolver, so a TRE's rendered position always matches whichever one is
 // currently addressing it — see world.ts's computeIslandGeometries doc.
 const islandGeometries = computeIslandGeometries(DEMO_TRES);
 let flowController: FlowController = createFlowController(engine, islandGeometries, () => currentState);
+
+const treNames = new Map(DEMO_TRES.map((t) => [t.id, t.name]));
+
+/**
+ * Curated landmark subset for persistent floating labels — every named
+ * "point of interest" per island, plus the mainland/customs equivalents.
+ * Structural/background meshes (ISLAND_LAND, ISLAND_WALL, MAINLAND_LAND,
+ * SEA, ...) stay clickable via the picker below, but don't get their own
+ * always-on label — with this many of them on screen at once, that would
+ * be clutter rather than explanation.
+ */
+const LABELLED_KINDS = new Set(["VAULT", "WORKSHOP", "GATE1_HARBOURMASTER", "GATE2_INSPECTOR", "CUSTOMS_HALL", "MAINLAND_DOCK"]);
+const labelTargets: { object: typeof worldGroup; text: string }[] = [];
+worldGroup.traverse((object) => {
+  const kind = object.userData.kind as string | undefined;
+  if (!kind || !LABELLED_KINDS.has(kind)) return;
+  const explanation = explanationForKind(kind);
+  if (!explanation) return;
+  labelTargets.push({ object, text: explanation.title });
+});
+createLabels(engine, container, labelTargets);
+
+const inspector = mountInspectorPanel(document.body, {
+  treNames,
+  getState: () => currentState,
+});
+
+const picker = createPicker({
+  engine,
+  root: worldGroup,
+  onHoverChange: (object) => {
+    engine.renderer.domElement.style.cursor = object ? "pointer" : "";
+  },
+  onSelect: (object) => {
+    if (object) inspector.show(object);
+    else inspector.hide();
+  },
+});
 
 /**
  * The click-to-decide UI for Gate 1/Gate 2 doesn't exist yet — this
@@ -155,6 +198,7 @@ const CAMERA_FLIGHT_SECONDS = 1.5;
 function startTour(tour: Tour): void {
   pauseAmbientDemo();
   cameraRig.controls.enabled = false;
+  picker.setEnabled(false);
   flowController.dispose();
 
   let tourState: SimState | null = null;
@@ -170,6 +214,7 @@ function startTour(tour: Tour): void {
     onExit: () => {
       tourFlowController.dispose();
       cameraRig.controls.enabled = true;
+      picker.setEnabled(true);
       // Recreate against the ambient state's current history so it doesn't
       // replay every ferry/crate departure that already happened.
       flowController = createFlowController(engine, islandGeometries, () => currentState, {
@@ -185,7 +230,7 @@ mountHud(document.body, {
   onStartTour: startTour,
 });
 
-/** The browser debugging surface — see CLAUDE.md "Architecture". Event bus lands with the inspector pass. */
+/** The browser debugging surface — see CLAUDE.md "Architecture". Event bus is still the one piece not built yet. */
 declare global {
   interface Window {
     ARCHIPELAGO: {
@@ -193,6 +238,7 @@ declare global {
       readonly cameraRig: typeof cameraRig;
       readonly flowController: FlowController;
       readonly engine: typeof engine;
+      readonly picker: typeof picker;
       readonly tours: {
         journeyOfATaskTour: typeof journeyOfATaskTour;
         theResultThatNeverLeftTour: typeof theResultThatNeverLeftTour;
@@ -211,5 +257,6 @@ window.ARCHIPELAGO = {
     return flowController;
   },
   engine,
+  picker,
   tours: { journeyOfATaskTour, theResultThatNeverLeftTour, playTour },
 };
