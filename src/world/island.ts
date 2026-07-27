@@ -21,10 +21,13 @@ function hashTreId(treId: TreId): number {
  * A distinct, irregular island silhouette per TRE — every island looks
  * like its own island, not a copy-pasted disc. Points are placed at fixed
  * angle steps with only the radius randomised, so the outline can never
- * self-intersect, and every radius stays within [0.7, 0.96] of wallRadius
- * so the shape is always strictly inside the (still circular, still
- * inviolable) wall — see honesty rule 1 and the wall/non-overlap tests in
- * layout.test.ts, which reason about wallRadius as a hard circular bound.
+ * self-intersect, and every radius stays within [0.62, 0.78] of wallRadius
+ * — well inside the wall ring's own inner edge (wallRadius - tube radius)
+ * so the coastline never pokes through the wall, leaving a deliberate
+ * moat rather than a glitchy overlap. Still always strictly inside the
+ * (circular, inviolable) wall — see honesty rule 1 and the wall/non-
+ * overlap tests in layout.test.ts, which reason about wallRadius as a
+ * hard circular bound.
  */
 function buildIslandLandGeometry(treId: TreId, wallRadius: number): THREE.BufferGeometry {
   const rng = createRng(hashTreId(treId));
@@ -32,7 +35,7 @@ function buildIslandLandGeometry(treId: TreId, wallRadius: number): THREE.Buffer
   const points: THREE.Vector2[] = [];
   for (let i = 0; i < pointCount; i++) {
     const angle = (i / pointCount) * Math.PI * 2;
-    const radius = wallRadius * (0.7 + rng() * 0.26);
+    const radius = wallRadius * (0.62 + rng() * 0.16);
     points.push(new THREE.Vector2(Math.cos(angle) * radius, Math.sin(angle) * radius));
   }
   const shape = new THREE.Shape(points);
