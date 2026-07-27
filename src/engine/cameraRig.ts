@@ -43,8 +43,8 @@ export function createCameraRig(engine: Engine): CameraRig {
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.autoRotate = false;
-  controls.minDistance = 8;
-  controls.maxDistance = 220;
+  controls.minDistance = 4;
+  controls.maxDistance = 110;
   controls.maxPolarAngle = Math.PI * 0.49;
 
   engine.onBeforeRender(() => controls.update());

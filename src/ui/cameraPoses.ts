@@ -21,8 +21,8 @@ function requireIsland(islands: ReadonlyMap<TreId, IslandGeometry>, treId: TreId
 }
 
 const OVERVIEW_POSE: CameraPoseVec = {
-  position: { x: 0, y: 110, z: 130 },
-  target: { x: 0, y: 0, z: -10 },
+  position: { x: 0, y: 50, z: 60 },
+  target: { x: 0, y: 0, z: -5 },
 };
 
 /**
@@ -36,29 +36,29 @@ export function resolveCameraPose(pose: CameraPose, islands: ReadonlyMap<TreId, 
     case "overview":
       return OVERVIEW_POSE;
     case "mainland":
-      return poseLookingAt(mainlandGeometry.center, 30, 22);
+      return poseLookingAt(mainlandGeometry.center, 24, 18);
     case "customs":
-      return poseLookingAt(customsGeometry.center, 16, 12);
+      return poseLookingAt(customsGeometry.center, 13, 10);
     case "sea": {
       const island = requireIsland(islands, pose.treId);
       const target = midpoint(island.dock, mainlandGeometry.quayDock);
-      return poseLookingAt(target, 18, 16);
+      return poseLookingAt(target, 15, 13);
     }
     case "tre": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.center, 28, 20);
+      return poseLookingAt(island.center, 22, 16);
     }
     case "treGate1": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.harbourmasterOffice, 10, 8);
+      return poseLookingAt(island.harbourmasterOffice, 9, 8);
     }
     case "treWorkshop": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.workshop, 10, 8);
+      return poseLookingAt(island.workshop, 9, 8);
     }
     case "treVault": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.vault, 8, 6);
+      return poseLookingAt(island.vault, 7, 6);
     }
   }
 }

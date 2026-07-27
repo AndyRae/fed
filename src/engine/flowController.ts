@@ -93,6 +93,22 @@ export function createFlowController(
   // event this has already seen, so this only ever increases.
   let lastEventCount = options.startFromCurrentEvents ? getState().events.length : 0;
 
+  /**
+   * A mesh can only be on one journey at a time. If busier ambient traffic
+   * means a new departure fires before the previous one reached the dock,
+   * the new trip replaces the old one outright rather than leaving two
+   * tweens both writing the same mesh's position every frame — without
+   * this, the older (further-along) tween's write would win each frame
+   * purely because of array iteration order, and the mesh would visibly
+   * jump backward whichever tween finishes first.
+   */
+  function pushTween(tween: Tween): void {
+    for (let i = tweens.length - 1; i >= 0; i--) {
+      if (tweens[i]!.mesh === tween.mesh) tweens.splice(i, 1);
+    }
+    tweens.push(tween);
+  }
+
   function handleNewEvents(state: SimState): void {
     for (let i = lastEventCount; i < state.events.length; i++) {
       const event = state.events[i]!;
@@ -100,7 +116,7 @@ export function createFlowController(
         const geometry = islands.get(event.treId);
         const ferry = ferryMeshes.get(event.treId);
         if (geometry && ferry) {
-          tweens.push({ mesh: ferry, path: ferryPath(geometry), duration: FERRY_TRIP_SECONDS, elapsed: 0, heightOffset: FERRY_HEIGHT });
+          pushTween({ mesh: ferry, path: ferryPath(geometry), duration: FERRY_TRIP_SECONDS, elapsed: 0, heightOffset: FERRY_HEIGHT });
         }
       } else if (event.type === "CRATE_SEALED") {
         const task = state.tasks.find((t) => t.id === event.taskId);
@@ -110,7 +126,7 @@ export function createFlowController(
           crate.userData.crateId = event.crateId;
           crate.position.set(geometry.workshop.x, geometry.workshop.y + CRATE_HEIGHT, geometry.workshop.z);
           host.scene.add(crate);
-          tweens.push({
+          pushTween({
             mesh: crate,
             path: egressPath(geometry),
             duration: CRATE_TRIP_SECONDS,

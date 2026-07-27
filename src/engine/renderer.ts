@@ -17,8 +17,8 @@ export interface Engine {
 
 export function createEngine(container: HTMLElement): Engine {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0e14);
-  scene.fog = new THREE.Fog(0x0a0e14, 120, 260);
+  scene.background = new THREE.Color(0x9bd8f2);
+  scene.fog = new THREE.Fog(0xbfe7f7, 70, 200);
 
   const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 500);
 
@@ -27,10 +27,10 @@ export function createEngine(container: HTMLElement): Engine {
   renderer.setSize(container.clientWidth, container.clientHeight);
   container.appendChild(renderer.domElement);
 
-  const hemiLight = new THREE.HemisphereLight(0xdfe9f0, 0x14202c, 1.1);
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcab98a, 1.25);
   scene.add(hemiLight);
-  const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
-  sunLight.position.set(60, 90, 40);
+  const sunLight = new THREE.DirectionalLight(0xfff2d6, 1.7);
+  sunLight.position.set(50, 80, 35);
   scene.add(sunLight);
 
   const beforeRenderCallbacks = new Set<(deltaSeconds: number) => void>();

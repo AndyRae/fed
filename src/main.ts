@@ -4,6 +4,7 @@ import type { SimState, TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
 import { createFlowController, type FlowController } from "./engine/flowController.ts";
 import { createEngine } from "./engine/renderer.ts";
+import { createRng } from "./sim/rng.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
 import { mountHud } from "./ui/hud.ts";
@@ -25,24 +26,31 @@ const DEMO_TRES = [
   { id: "tre-b", name: "Isle of Kessel" },
   { id: "tre-c", name: "Isle of Muck" },
 ];
-const DEMO_PROJECT_ID = "proj-demo";
+
+const STUDY_NAMES = [
+  "Cardiovascular Risk Study",
+  "Diabetes Cohort Study",
+  "Retinal Imaging Study",
+  "Genomic Variant Survey",
+  "Respiratory Outcomes Trial",
+  "Maternal Health Registry",
+];
+const RESEARCHERS = [
+  "Dr. Amara Osei",
+  "Dr. Femi Adeyemi",
+  "Dr. Priya Nair",
+  "Dr. Liang Chen",
+  "Dr. Sofia Marín",
+  "Dr. Kwame Mensah",
+];
 
 let currentState = createInitialSimState({ seed: 1, tres: DEMO_TRES, pollIntervalTicks: 3 });
-currentState = submitProject(currentState, {
-  id: DEMO_PROJECT_ID,
-  name: "Cardiovascular Risk Study",
-  researcher: "Dr. Amara Osei",
-  targetTreIds: DEMO_TRES.map((t) => t.id),
-});
-for (const tre of DEMO_TRES) {
-  currentState = submitTask(currentState, { id: `task-${tre.id}`, projectId: DEMO_PROJECT_ID, treId: tre.id });
-}
 
 const engine = createEngine(container);
 const cameraRig = createCameraRig(engine);
 cameraRig.setPose({
-  position: { x: 0, y: 110, z: 130 },
-  target: { x: 0, y: 0, z: -10 },
+  position: { x: 0, y: 50, z: 60 },
+  target: { x: 0, y: 0, z: -5 },
 });
 
 engine.scene.add(buildWorld(currentState));
@@ -61,19 +69,16 @@ let flowController: FlowController = createFlowController(engine, islandGeometri
  * actually demonstrated — this demo is for proving the engine renders and
  * animates correctly outside a tour.
  */
-function scheduleProjectApproval(treId: TreId, decidedBy: string, delayMs: number): void {
+function scheduleProjectApproval(projectId: string, treId: TreId, decidedBy: string, delayMs: number): void {
   setTimeout(() => {
     currentState = decideProjectApproval(currentState, {
-      projectId: DEMO_PROJECT_ID,
+      projectId,
       treId,
       decision: "APPROVED",
       decidedBy,
     });
   }, delayMs);
 }
-DEMO_TRES.forEach((tre, index) => {
-  scheduleProjectApproval(tre.id, `Harbourmaster of ${tre.name}`, 1500 + index * 1800);
-});
 
 const scheduledForReview = new Set<string>();
 function scheduleNewOutputReviews(): void {
@@ -85,6 +90,40 @@ function scheduleNewOutputReviews(): void {
     }, 2000);
   }
 }
+
+// All randomness in this ambient demo goes through this one seeded RNG —
+// see CLAUDE.md "Simulation model". Purely cosmetic (which study/researcher
+// name shows up), never used for protocol decisions.
+const demoRng = createRng(7);
+function pickFrom<T>(items: readonly T[]): T {
+  return items[Math.floor(demoRng() * items.length)]!;
+}
+
+const MAX_DEMO_PROJECTS = 60;
+let projectCounter = 0;
+
+/**
+ * Submits one new project to every island and schedules its approvals, so
+ * ferries keep departing and returning indefinitely instead of the world
+ * going static after the first round trip. Capped so an indefinitely open
+ * tab doesn't grow SimState's arrays without bound.
+ */
+function spawnDemoProject(): void {
+  if (projectCounter >= MAX_DEMO_PROJECTS) return;
+  const id = `proj-demo-${projectCounter++}`;
+  currentState = submitProject(currentState, {
+    id,
+    name: pickFrom(STUDY_NAMES),
+    researcher: pickFrom(RESEARCHERS),
+    targetTreIds: DEMO_TRES.map((t) => t.id),
+  });
+  DEMO_TRES.forEach((tre, index) => {
+    currentState = submitTask(currentState, { id: `task-${id}-${tre.id}`, projectId: id, treId: tre.id });
+    scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, 1200 + index * 1200);
+  });
+}
+spawnDemoProject();
+window.setInterval(spawnDemoProject, 4500);
 
 let ambientTimer: number | null = null;
 function resumeAmbientDemo(): void {
