@@ -22,8 +22,8 @@ const demoSimState = createInitialSimState({
 const engine = createEngine(container);
 const cameraRig = createCameraRig(engine);
 cameraRig.setPose({
-  position: { x: 10, y: 55, z: 55 },
-  target: { x: 0, y: 0, z: -15 },
+  position: { x: 0, y: 110, z: 130 },
+  target: { x: 0, y: 0, z: -10 },
 });
 
 engine.scene.add(buildWorld(demoSimState));
