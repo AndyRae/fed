@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { theme } from "../core/theme.ts";
 import type { CrateId, SimState, TreId } from "../core/types.ts";
-import { egressPath, ferryPath, type IslandGeometry, submissionPath, type Vec3 } from "../world/layout.ts";
+import { egressPath, ferryPath, type IslandGeometry, SEA_LEVEL_Y, submissionPath, type Vec3 } from "../world/layout.ts";
 import { GROUND_HEIGHT } from "../world/island.ts";
 import { MAINLAND_GROUND_HEIGHT } from "../world/mainland.ts";
 import { pointAlongPath } from "../world/pathInterpolation.ts";
@@ -33,6 +33,19 @@ const DECISION_PULSE_HEIGHT = GROUND_HEIGHT + 0.08;
 const COMPUTE_GLOW_HEIGHT_VAULT = GROUND_HEIGHT + 1.8;
 const COMPUTE_GLOW_HEIGHT_WORKSHOP = GROUND_HEIGHT + 2.6;
 const COMPUTE_GLOW_PULSE_HZ = 5;
+
+// A short, fading trail of dots behind each moving ferry — purely decorative
+// (see CLAUDE.md "Visual language"), but it reinforces honesty rule 1 for
+// free: a wake that only ever originates from a moving ferry and fades
+// behind it makes "this island's own ferry departs, collects, returns" read
+// as physical motion, not just a correct route. Never a continuous line —
+// a handful of independently-fading dots, so it can never be mistaken for a
+// route or a flow of anything between islands.
+const WAKE_DOT_COUNT = 8;
+const WAKE_DOT_RADIUS = 0.3;
+const WAKE_SAMPLE_INTERVAL_SECONDS = 0.12;
+const WAKE_LIFETIME_SECONDS = 1.1;
+const WAKE_HEIGHT = SEA_LEVEL_Y + 0.04;
 
 /**
  * The minimal surface the flow controller needs from the renderer. Narrow
@@ -81,6 +94,43 @@ interface ComputeGlow {
   readonly vaultMaterial: THREE.MeshStandardMaterial;
   readonly workshopMesh: THREE.Mesh;
   readonly workshopMaterial: THREE.MeshStandardMaterial;
+}
+
+/** One recorded ferry position, ageing toward WAKE_LIFETIME_SECONDS until it's dropped. */
+interface WakeSample {
+  readonly x: number;
+  readonly z: number;
+  age: number;
+}
+
+/**
+ * A fixed pool of WAKE_DOT_COUNT dot meshes per island, reused rather than
+ * created/destroyed per sample — only their position and opacity change.
+ * `samples` holds the live history (newest first, capped at
+ * WAKE_DOT_COUNT); dots beyond `samples.length` sit hidden at opacity 0.
+ */
+interface WakeTrail {
+  readonly dots: THREE.Mesh[];
+  readonly materials: THREE.MeshStandardMaterial[];
+  readonly samples: WakeSample[];
+  timeSinceLastSample: number;
+}
+
+/** Untagged (no userData.kind) like buildRingMesh's glow rings — purely decorative, so it must never resolve to anything under the picker. userData.wakeTreId identifies it for tests only. */
+function buildWakeDotMesh(treId: TreId): THREE.Mesh {
+  const mesh = new THREE.Mesh(
+    new THREE.CircleGeometry(WAKE_DOT_RADIUS, 10),
+    new THREE.MeshStandardMaterial({
+      color: theme.untrusted.foam,
+      roughness: 0.9,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.userData.wakeTreId = treId;
+  return mesh;
 }
 
 function buildFerryMesh(treId: TreId): THREE.Object3D {
@@ -206,11 +256,22 @@ export function createFlowController(
 ): FlowController {
   const ferryMeshes = new Map<TreId, THREE.Object3D>();
   const computeGlows = new Map<TreId, ComputeGlow>();
+  const wakeTrails = new Map<TreId, WakeTrail>();
   for (const [treId, geometry] of islands) {
     const ferry = buildFerryMesh(treId);
     ferry.position.set(geometry.dock.x, geometry.dock.y + FERRY_HEIGHT, geometry.dock.z);
     host.scene.add(ferry);
     ferryMeshes.set(treId, ferry);
+
+    const wakeDots: THREE.Mesh[] = [];
+    const wakeMaterials: THREE.MeshStandardMaterial[] = [];
+    for (let i = 0; i < WAKE_DOT_COUNT; i++) {
+      const dot = buildWakeDotMesh(treId);
+      host.scene.add(dot);
+      wakeDots.push(dot);
+      wakeMaterials.push(dot.material as THREE.MeshStandardMaterial);
+    }
+    wakeTrails.set(treId, { dots: wakeDots, materials: wakeMaterials, samples: [], timeSinceLastSample: 0 });
 
     const vaultGlow = buildRingMesh(theme.vault.reserved, 1.5, 2.1);
     vaultGlow.position.set(geometry.vault.x, geometry.vault.y + COMPUTE_GLOW_HEIGHT_VAULT, geometry.vault.z);
@@ -381,6 +442,44 @@ export function createFlowController(
     }
   }
 
+  /**
+   * Records a new sample point behind a ferry every WAKE_SAMPLE_INTERVAL_SECONDS
+   * while it has an active tween, ages every existing sample regardless of
+   * whether the ferry is currently moving (so the trail keeps fading and
+   * clearing even after the ferry has docked again), and fades each pooled
+   * dot's opacity to match. See the WAKE_* constants' own doc comment.
+   */
+  function updateWakeTrails(deltaSeconds: number): void {
+    for (const [treId, trail] of wakeTrails) {
+      const ferry = ferryMeshes.get(treId)!;
+      const moving = tweens.some((tween) => tween.mesh === ferry);
+
+      if (moving) {
+        trail.timeSinceLastSample += deltaSeconds;
+        if (trail.timeSinceLastSample >= WAKE_SAMPLE_INTERVAL_SECONDS) {
+          trail.timeSinceLastSample = 0;
+          trail.samples.unshift({ x: ferry.position.x, z: ferry.position.z, age: 0 });
+          if (trail.samples.length > WAKE_DOT_COUNT) trail.samples.length = WAKE_DOT_COUNT;
+        }
+      }
+
+      for (let i = trail.samples.length - 1; i >= 0; i--) {
+        trail.samples[i]!.age += deltaSeconds;
+        if (trail.samples[i]!.age >= WAKE_LIFETIME_SECONDS) trail.samples.splice(i, 1);
+      }
+
+      for (let i = 0; i < trail.dots.length; i++) {
+        const sample = trail.samples[i];
+        if (!sample) {
+          trail.materials[i]!.opacity = 0;
+          continue;
+        }
+        trail.dots[i]!.position.set(sample.x, WAKE_HEIGHT, sample.z);
+        trail.materials[i]!.opacity = 0.55 * (1 - sample.age / WAKE_LIFETIME_SECONDS);
+      }
+    }
+  }
+
   function updatePulses(deltaSeconds: number): void {
     for (let i = pulses.length - 1; i >= 0; i--) {
       const pulse = pulses[i]!;
@@ -417,12 +516,22 @@ export function createFlowController(
         tween.onComplete?.();
       }
     }
+
+    updateWakeTrails(deltaSeconds);
   });
 
   return {
     dispose() {
       unsubscribe();
       for (const ferry of ferryMeshes.values()) host.scene.remove(ferry);
+      for (const trail of wakeTrails.values()) {
+        for (const dot of trail.dots) {
+          host.scene.remove(dot);
+          dot.geometry.dispose();
+          (dot.material as THREE.MeshStandardMaterial).dispose();
+        }
+      }
+      wakeTrails.clear();
       for (const tween of tweens) host.scene.remove(tween.mesh);
       tweens.length = 0;
       for (const mesh of allCrateMeshes) host.scene.remove(mesh);

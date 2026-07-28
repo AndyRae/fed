@@ -116,6 +116,37 @@ describe("createFlowController", () => {
     expect(ferryA.position.z).toBeCloseTo(dockA.z, 5);
   });
 
+  it("trails a fading wake behind a moving ferry, which clears again once it's back at rest", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ]);
+    const state = twoIslandWorldWithCollectedTask();
+    createFlowController(host, islands, () => state);
+
+    function wakeDotsFor(treId: string): THREE.Mesh[] {
+      const dots: THREE.Mesh[] = [];
+      host.scene.traverse((o) => {
+        if (o.userData.wakeTreId === treId) dots.push(o as THREE.Mesh);
+      });
+      return dots;
+    }
+
+    // Barely started: not even one sample interval has elapsed yet.
+    frame(0.05);
+    expect(wakeDotsFor("tre-a").every((d) => (d.material as THREE.MeshStandardMaterial).opacity === 0)).toBe(true);
+
+    // Partway through the trip: at least one wake dot has become visible.
+    for (let i = 0; i < 5; i++) frame(0.12);
+    const visible = wakeDotsFor("tre-a").filter((d) => (d.material as THREE.MeshStandardMaterial).opacity > 0);
+    expect(visible.length).toBeGreaterThan(0);
+
+    // Long after the ferry is back home, the wake has fully faded again.
+    for (let i = 0; i < 40; i++) frame(0.12);
+    expect(wakeDotsFor("tre-a").every((d) => (d.material as THREE.MeshStandardMaterial).opacity === 0)).toBe(true);
+  });
+
   it("spawns a crate at the workshop on CRATE_SEALED, holds it at this island's own customs hall until Gate 2 decides, then releases it to the quay", () => {
     const { host, frame } = createFakeHost();
     const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
