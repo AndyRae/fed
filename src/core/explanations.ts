@@ -62,7 +62,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "The quay office",
     plain: "The building where the submission layer itself lives — where a researcher's project and tasks are actually received, and where approved results are actually handed back.",
     detail:
-      "Makes CLAUDE.md's world-metaphor table row for \"The mainland port\" (Submission layer) concrete as a real structure, rather than an implied capability of the bare dock platform beside it. No protocol role beyond that: submitProject/submitTask happen here in world terms, and releasedCratesForProject's aggregation for the researcher completes here too.",
+      "This building is the submission layer itself, made concrete as a real structure rather than an implied capability of the bare dock platform beside it. It has no protocol role beyond that: a project and its tasks are received here, and released results are handed back and aggregated here too.",
   },
   MAINLAND_BUILDING: {
     title: "A quay building",
@@ -73,7 +73,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "The researcher quarter",
     plain: "Where researchers and their institutions are, collectively — every submitted task's own journey to the quay starts here.",
     detail:
-      "Decorative and collective, like the quay buildings around it — not a new gate. \"Researcher / submitter\" in CLAUDE.md's world-metaphor table is still centred on the quay itself, where tasks begin and results end in protocol terms; this is only where the submission animation visually originates. SimState has no notion of which building a task came from — see SIMPLIFICATIONS.md.",
+      "Decorative and collective, like the quay buildings around it — not a new gate. \"Researcher / submitter\" in protocol terms is still centred on the quay itself, where tasks begin and results end; this is only where the submission animation visually originates. The model doesn't track which institution a given task came from.",
   },
   ISLAND_LAND: {
     title: "An island",
@@ -85,25 +85,25 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "The shoreline",
     plain: "The sandy edge between this island's grass and the open water — scenery, not a separate step in the protocol.",
     detail:
-      "No distinct protocol role, like ISLAND_LAND and ISLAND_WALL. Marks the coastline so the island reads as a real place with an edge, not a flat disc dropped onto the sea.",
+      "No distinct protocol role, like the island's grass and its wall. Marks the coastline so the island reads as a real place with an edge, not a flat disc dropped onto the sea.",
   },
   ISLAND_WALL: {
     title: "The island wall",
     plain: "The boundary of this TRE. Only this island's own ferry may ever cross it, and only by leaving and returning.",
     detail:
-      "The TRE network boundary. Honesty rule 1: no ferry docks at an island it did not depart from, and no motion of any kind enters here from outside.",
+      "The TRE network boundary: no ferry ever docks at an island it did not depart from, and no motion of any kind enters here from outside.",
   },
   VAULT: {
     title: "The vault",
     plain: "The sensitive data. Fixed here, always — nothing that starts here ever leaves.",
     detail:
-      "Honesty rule 2: the vault emits nothing. Nothing whose origin is the vault ever boards a ferry, crosses a wall, or appears on the mainland.",
+      "The vault emits nothing: nothing whose origin is the vault ever boards a ferry, crosses a wall, or appears on the mainland.",
   },
   WORKSHOP: {
     title: "The workshop",
     plain: "Where the researcher's container actually runs, inside the wall, right next to the vault it computes on.",
     detail:
-      "The TES runner (Funnel, in the reference implementation). Executes the GA4GH TES task through its real states: QUEUED → INITIALIZING → RUNNING → COMPLETE (or EXECUTOR_ERROR / CANCELED). Sits beside the vault and computes on it in place — nothing the vault holds ever leaves it (honesty rule 2); only the workshop's own output is ever sealed into a crate.",
+      "The TES runner (Funnel, in the reference implementation). Executes the GA4GH TES task through its real states: QUEUED → INITIALIZING → RUNNING → COMPLETE (or EXECUTOR_ERROR / CANCELED). Sits beside the vault and computes on it in place — nothing the vault holds ever leaves it; only the workshop's own output is ever sealed into a crate.",
   },
   GATE1_HARBOURMASTER: {
     title: "The harbourmaster's office",
@@ -133,7 +133,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "A researcher's submission",
     plain: "The actual piece of work, on its way from the researcher quarter to the quay — before any island has agreed to run it.",
     detail:
-      "Rendered on TASK_SUBMITTED, entirely on the mainland: no wall, no island, no TRE is involved yet. Distinct in colour from both the container it becomes once an island's ferry has collected it (trust.ferry) and the crate it may become once a workshop has actually run it (crate.body) — this hasn't been agreed to by anyone yet.",
+      "Appears the moment a task is submitted, entirely on the mainland: no wall, no island, no TRE is involved yet. Distinct in colour from both the container it becomes once an island's ferry has collected it, and the crate it may become once a workshop has actually run it — this hasn't been agreed to by anyone yet.",
   },
   CRATE: {
     title: "A sealed crate",
@@ -158,7 +158,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "The ferry's route",
     plain: "The path this island's ferry travels: out from its dock, across to the mainland, and back to the very same dock.",
     detail:
-      "Honesty rule 1, drawn as a line: this route only ever starts and ends at the same island's dock. No route like this ever connects two different islands.",
+      "Drawn as a line, this route only ever starts and ends at the same island's dock — no route like this ever connects two different islands.",
   },
   EGRESS_ROUTE: {
     title: "A crate's route to the quay",
@@ -172,7 +172,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     plain:
       "How a task actually moves through this island once it's here: approved at the harbourmaster's office, run at the workshop, then checked at the customs hall before it may leave.",
     detail:
-      "Connects the harbourmaster's office (Gate 1), the workshop, and this island's own customs hall (Gate 2), in that order — the real sequence a TES task's governance states follow inside the wall. Purely informational: nothing travels along it. The vault is deliberately not on this path — honesty rule 2: nothing whose origin is the vault ever travels anywhere.",
+      "Connects the harbourmaster's office (Gate 1), the workshop, and this island's own customs hall (Gate 2), in that order — the real sequence a TES task's governance states follow inside the wall. Purely informational: nothing travels along it. The vault is deliberately not on this path: nothing whose origin is the vault ever travels anywhere.",
   },
 };
 
