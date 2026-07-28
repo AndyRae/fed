@@ -143,20 +143,40 @@ const picker = createPicker({
   },
 });
 
+// All randomness in this ambient demo goes through this one seeded RNG —
+// see CLAUDE.md "Simulation model". Drives cosmetic choices (which study/
+// researcher name shows up) and, below, the two human gates' decisions —
+// never anything about how a task mechanically executes.
+const demoRng = createRng(7);
+function pickFrom<T>(items: readonly T[]): T {
+  return items[Math.floor(demoRng() * items.length)]!;
+}
+
+/**
+ * Rough, made-up rates — not sourced from any real approval statistic —
+ * just high enough that a refusal is a genuine, regular sight in the
+ * ambient demo, not a rare footnote you'd only ever see in a tour. Honesty
+ * rule 5: refusal is a first-class path, and a world that only ever says
+ * yes teaches that the gates are theatrical.
+ */
+const GATE1_REFUSAL_RATE = 0.15;
+const GATE2_REFUSAL_RATE = 0.12;
+
 /**
  * The click-to-decide UI for Gate 1/Gate 2 doesn't exist yet — this
  * free-roam ambient demo stands in for it with a delayed timer, so the
- * queue still visibly holds rather than approving/releasing instantly
- * (honesty rule 3). The two flagship tours are where the refusal paths are
- * actually demonstrated — this demo is for proving the engine renders and
- * animates correctly outside a tour.
+ * queue still visibly holds rather than deciding instantly (honesty rule
+ * 3). The decision itself is drawn now, before the timer, so the queue's
+ * wait is the only place its outcome is hidden — not a coin flip at reveal
+ * time.
  */
 function scheduleProjectApproval(projectId: string, treId: TreId, decidedBy: string, delayMs: number): void {
+  const decision: "APPROVED" | "REFUSED" = demoRng() < GATE1_REFUSAL_RATE ? "REFUSED" : "APPROVED";
   setTimeout(() => {
     currentState = decideProjectApproval(currentState, {
       projectId,
       treId,
-      decision: "APPROVED",
+      decision,
       decidedBy,
     });
   }, delayMs);
@@ -167,22 +187,15 @@ function scheduleNewOutputReviews(): void {
   for (const crate of currentState.crates) {
     if (crate.status !== "HELD" || scheduledForReview.has(crate.id)) continue;
     scheduledForReview.add(crate.id);
+    const decision: "RELEASED" | "REFUSED" = demoRng() < GATE2_REFUSAL_RATE ? "REFUSED" : "RELEASED";
     // Long enough that the crate has already visibly arrived and parked at
     // this island's own customs hall (the flow controller's hold leg is
     // well under a second) before "a human" decides — honesty rule 3, the
     // queue must visibly hold, not just skip straight to the outcome.
     setTimeout(() => {
-      currentState = decideOutputReview(currentState, { crateId: crate.id, decision: "RELEASED" });
+      currentState = decideOutputReview(currentState, { crateId: crate.id, decision });
     }, 1600);
   }
-}
-
-// All randomness in this ambient demo goes through this one seeded RNG —
-// see CLAUDE.md "Simulation model". Purely cosmetic (which study/researcher
-// name shows up), never used for protocol decisions.
-const demoRng = createRng(7);
-function pickFrom<T>(items: readonly T[]): T {
-  return items[Math.floor(demoRng() * items.length)]!;
 }
 
 const MAX_DEMO_PROJECTS = 110;
