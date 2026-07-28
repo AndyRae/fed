@@ -10,6 +10,7 @@ import type { Tour } from "./tourTypes.ts";
 export interface HudOptions {
   readonly tours: readonly Tour[];
   readonly onStartTour: (tour: Tour) => void;
+  readonly onToggleHelp: () => void;
 }
 
 export interface HudHandle {
@@ -32,12 +33,20 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     ),
   );
 
+  const helpButton = el("button", {
+    class: "fsa-btn fsa-hud-top__help",
+    type: "button",
+    text: "?",
+    "aria-label": "Help — controls and about this world",
+    on: { click: () => options.onToggleHelp() },
+  });
+
   const bar = el(
     "div",
     { id: "fsa-hud-top", class: "fsa-hud-top" },
     el("div", { class: "fsa-hud-top__title", text: "Five Safes Archipelago" }),
     el("div", { class: "fsa-hud-top__disclosure", text: SCALED_TIME_DISCLOSURE }),
-    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons),
+    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, helpButton),
   );
   root.append(bar);
 

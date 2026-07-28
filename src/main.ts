@@ -13,6 +13,7 @@ import { createWhaleController, type WhaleExclusionZone } from "./engine/whaleCo
 import { createRng } from "./sim/rng.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
+import { mountHelpOverlay } from "./ui/helpOverlay.ts";
 import { mountHud } from "./ui/hud.ts";
 import { mountInspectorPanel } from "./ui/inspectorPanel.ts";
 import { mountStatsPanel } from "./ui/statsPanel.ts";
@@ -374,9 +375,21 @@ function startTour(tour: Tour): void {
   });
 }
 
+const SOURCE_URL = "https://github.com/andyrae/fed";
+
+const helpOverlay = mountHelpOverlay(document.body, SOURCE_URL);
+
 mountHud(document.body, {
   tours: [journeyOfATaskTour, theResultThatNeverLeftTour],
   onStartTour: startTour,
+  onToggleHelp: () => helpOverlay.toggle(),
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "?") return;
+  const target = event.target as HTMLElement | null;
+  if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+  helpOverlay.toggle();
 });
 
 /** The browser debugging surface — see CLAUDE.md "Architecture". Event bus is still the one piece not built yet. */

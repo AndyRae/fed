@@ -391,6 +391,131 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   line-height: 1.5;
 }
 
+/* -------------------------------- help panel ------------------------------- */
+
+.fsa-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 9, 13, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fsa-dur) ease;
+}
+.fsa-help-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fsa-help {
+  position: relative;
+  font-family: var(--fsa-font);
+  color: var(--fsa-ink);
+  background: var(--fsa-bg-panel);
+  border: 1px solid var(--fsa-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  width: min(520px, 100%);
+  max-height: min(88vh, 760px);
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.fsa-help__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 2px 7px;
+  line-height: 1;
+}
+
+.fsa-help__title {
+  margin: 0 24px 8px 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.fsa-help__about {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-help__section + .fsa-help__section {
+  margin-top: 16px;
+}
+
+.fsa-help__section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-help__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+}
+.fsa-help__row + .fsa-help__row {
+  border-top: 1px solid var(--fsa-line);
+}
+
+.fsa-help__keys {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 40%;
+  min-width: 130px;
+}
+
+.fsa-help__key {
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--fsa-ink);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--fsa-line);
+  border-radius: 5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.fsa-help__key-or {
+  font-size: 10px;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-help__desc {
+  font-size: 13px;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.fsa-help__footer {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fsa-line);
+  display: flex;
+  justify-content: flex-end;
+}
+.fsa-help__footer a {
+  text-decoration: none;
+}
+
+.fsa-hud-top__help {
+  font-weight: 700;
+}
+
 /* --------------------------------- mobile ---------------------------------- */
 
 /* Below this width the top bar's title + disclosure + tour buttons no
@@ -434,6 +559,19 @@ body.fsa-touring #fsa-stats-panel:focus-within {
     right: 10px;
     width: calc(100% - 20px);
   }
+
+  .fsa-help-overlay {
+    padding: 12px;
+  }
+  .fsa-help__row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .fsa-help__keys {
+    width: auto;
+    min-width: 0;
+  }
 }
 
 /* ------------------------------ reduced motion ---------------------------- */
@@ -442,7 +580,8 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   #fsa-hud-top,
   .fsa-tour-card,
   #fsa-inspector-layer,
-  #fsa-stats-panel {
+  #fsa-stats-panel,
+  .fsa-help-overlay {
     transition: none;
   }
 }
