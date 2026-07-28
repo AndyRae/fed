@@ -6,8 +6,8 @@ import { SEA_LEVEL_Y } from "./layout.ts";
 const SEA_SIZE = 260;
 /** Enough resolution for the swell below to read as a smooth curve rather than a faceted one. */
 const SEA_SEGMENTS = 64;
-/** Small and gentle — a perfectly flat plane has one normal everywhere, so under directional lighting it necessarily renders as a single uniform colour with no sense of a surface at all. This bakes just enough permanent, low-frequency undulation to catch light unevenly and read as a soft sea, without paying for (or risking) a per-frame animation loop. */
-const SWELL_AMPLITUDE = 0.5;
+/** A perfectly flat plane has one normal everywhere, so under directional lighting it necessarily renders as a single uniform colour with no sense of a surface at all. This bakes permanent, low-frequency undulation to catch light unevenly and read as a soft sea, without paying for (or risking) a per-frame animation loop. 0.5 read as barely-there at normal camera distances; this is 3x that, still gentle (no chop, no animation), but actually visible. */
+const SWELL_AMPLITUDE = 1.5;
 
 function seaSwellHeight(x: number, z: number): number {
   return SWELL_AMPLITUDE * (Math.sin(x * 0.05) * Math.cos(z * 0.045) + 0.4 * Math.sin((x + z) * 0.03));

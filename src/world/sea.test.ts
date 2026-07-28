@@ -33,7 +33,9 @@ describe("buildSea", () => {
     expect(anyDisplaced).toBe(true);
     // Gentle and subordinate — see CLAUDE.md "Visual language": decorative
     // motion (and, by the same logic, decorative shape) must not dominate.
-    expect(maxAbs).toBeLessThan(1);
+    // Bound is generous around the current amplitude's theoretical max
+    // (SWELL_AMPLITUDE * 1.4 ≈ 2.1), not a tight pin to one exact value.
+    expect(maxAbs).toBeLessThan(2.5);
   });
 
   it("recomputes normals so the swell actually catches light", () => {
