@@ -14,6 +14,7 @@ import {
   workflowPath,
   type Vec3,
 } from "./layout.ts";
+import { MAINLAND_RADIUS, MAINLAND_SAFE_INTERIOR_RADIUS } from "./mainland.ts";
 
 function distance(a: Vec3, b: Vec3): number {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -253,17 +254,34 @@ describe("real geometry: workflowPath", () => {
   });
 });
 
+describe("real geometry: mainlandGeometry.quayDock", () => {
+  it("sits out at the mainland's own coastline, not deep inland — this is where the ferry, a released crate, and a submission all actually arrive", () => {
+    const dock = mainlandGeometry.quayDock;
+    const center = mainlandGeometry.center;
+    // Beyond the interior radius every decoration is guaranteed to stay
+    // within (see MAINLAND_SAFE_INTERIOR_RADIUS) — i.e. genuinely near or
+    // past the coastline, not comfortably inland like a plaza would need
+    // to be.
+    expect(distance(dock, center)).toBeGreaterThan(MAINLAND_SAFE_INTERIOR_RADIUS);
+    // Not absurdly far out in open water either — a pier extends past the
+    // shore, it doesn't sail off into the ocean.
+    expect(distance(dock, center)).toBeLessThan(MAINLAND_RADIUS + 3);
+  });
+});
+
 describe("real geometry: mainlandGeometry.quayOffice", () => {
-  it("sits tight beside the dock — close enough to read as the building every route into the quay actually arrives at", () => {
+  it("stays safely on solid ground, inside the mainland's guaranteed-interior radius, even accounting for its own footprint", () => {
+    const office = mainlandGeometry.quayOffice;
+    const center = mainlandGeometry.center;
+    const officeFootprintRadius = 1.3; // half-diagonal of its ~1.8x1.8 base — see mainland.ts's buildQuayOffice
+    expect(distance(office, center) + officeFootprintRadius).toBeLessThan(MAINLAND_SAFE_INTERIOR_RADIUS);
+  });
+
+  it("sits close to the dock — near enough to read as the building the ferry/egress/submission routes actually arrive at, not a separate structure floating nearby", () => {
     const office = mainlandGeometry.quayOffice;
     const dock = mainlandGeometry.quayDock;
     expect(distance(office, dock)).toBeGreaterThan(0.5);
-    expect(distance(office, dock)).toBeLessThan(3);
-  });
-
-  it("shares the dock's own position along the coast (same z) rather than sitting behind or beside at an angle — the ferry, egress, and submission paths all end at exactly this z", () => {
-    const office = mainlandGeometry.quayOffice;
-    expect(office.z).toBeCloseTo(mainlandGeometry.quayDock.z, 5);
+    expect(distance(office, dock)).toBeLessThan(6);
   });
 
   it("is distinct from the mainland centre, the dock, and the researcher quarter", () => {

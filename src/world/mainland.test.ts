@@ -149,6 +149,19 @@ describe("buildMainland", () => {
     expect(worldPos.y).toBeGreaterThan(trueSurfaceY);
   });
 
+  it("sits the dock above the land's own true flat surface where it overlaps solid ground — not embedded in the extrude bevel the way it was before it moved out toward the coastline", () => {
+    const mainland = buildMainland();
+    const land = findByKind(mainland, "MAINLAND_LAND") as THREE.Mesh;
+    land.geometry.computeBoundingBox();
+    const trueSurfaceY = land.position.y + land.geometry.boundingBox!.max.y;
+
+    const dock = findByKind(mainland, "MAINLAND_DOCK") as THREE.Mesh;
+    mainland.updateMatrixWorld(true);
+    const worldPos = new THREE.Vector3();
+    dock.getWorldPosition(worldPos);
+    expect(worldPos.y).toBeGreaterThan(trueSurfaceY);
+  });
+
   it("is deterministic: building the mainland twice scatters the same researcher quarter", () => {
     const a = findAllByKind(buildMainland(), "MAINLAND_BUILDING");
     const b = findAllByKind(buildMainland(), "MAINLAND_BUILDING");

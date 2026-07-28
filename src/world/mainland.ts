@@ -3,7 +3,7 @@ import { theme } from "../core/theme.ts";
 import { createRng } from "../sim/rng.ts";
 import { mainlandGeometry, SEA_LEVEL_Y } from "./layout.ts";
 
-const MAINLAND_RADIUS = 16;
+export const MAINLAND_RADIUS = 16;
 /** The land mesh's nominal extrude depth — see buildMainlandLandGeometry. Not, by itself, the height of the terrain's actual flat top surface; see MAINLAND_GROUND_HEIGHT below for that. */
 const MAINLAND_HEIGHT = 1.2;
 /** ExtrudeGeometry's bevel adds this much height again on top of `depth` (see buildMainlandLandGeometry's bevelThickness) — same bug class as ISLAND_HEIGHT/GROUND_HEIGHT in island.ts, fixed here the same way. */
@@ -228,11 +228,18 @@ export function buildMainland(): THREE.Object3D {
 
   group.add(buildResearcherQuarter());
 
+  // Sits at MAINLAND_GROUND_HEIGHT, not sea level — quayDock is out at the
+  // coastline (see layout.ts), so most of the dock's own footprint still
+  // overlaps solid raised ground, and a low sea-level dock would render
+  // buried under that terrain exactly the way the plaza once did. The
+  // seaward tip, past the actual coastline, reads as a jetty raised on
+  // pilings rather than resting flush with the water — a normal look for
+  // a real pier.
   const dock = new THREE.Mesh(
     new THREE.BoxGeometry(3, 0.4, 7),
     new THREE.MeshStandardMaterial({ color: theme.untrusted.mainland, roughness: 0.7 }),
   );
-  dock.position.set(mainlandGeometry.quayDock.x, SEA_LEVEL_Y + 0.2, mainlandGeometry.quayDock.z);
+  dock.position.set(mainlandGeometry.quayDock.x, SEA_LEVEL_Y + MAINLAND_GROUND_HEIGHT + 0.1, mainlandGeometry.quayDock.z);
   dock.userData.kind = "MAINLAND_DOCK";
   for (const bollard of buildDockBollards()) dock.add(bollard);
   group.add(dock);
