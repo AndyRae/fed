@@ -35,6 +35,8 @@ export const theme = {
     submission: 0xeee0c5,
     /** A thin, lighter ring where each island's own beach meets the open sea (see world/island.ts) — purely a coastline blend, not a new zone or gate; still the untrusted role, just a lighter tone of it. */
     foam: 0xdff3fa,
+    /** The whale that occasionally surfaces out in open water (see world/whale.ts) — pure ambient decoration, like the sea's own swell, so it stays within the untrusted role rather than becoming a new one. */
+    whale: 0x2b4a5c,
   },
   /** Reserved exclusively for the two human gates: Gate 1 (project approval) and Gate 2 (output review). Never used for anything else. */
   gate: {

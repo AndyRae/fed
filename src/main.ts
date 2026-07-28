@@ -9,6 +9,7 @@ import { createLabels } from "./engine/labels.ts";
 import { createPicker } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createVaultShimmer } from "./engine/vaultShimmer.ts";
+import { createWhaleController, type WhaleExclusionZone } from "./engine/whaleController.ts";
 import { createRng } from "./sim/rng.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
@@ -19,6 +20,8 @@ import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
 import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
 import type { Tour } from "./ui/tourTypes.ts";
+import { mainlandGeometry } from "./world/layout.ts";
+import { MAINLAND_RADIUS } from "./world/mainland.ts";
 import { buildWorld, computeIslandGeometries } from "./world/world.ts";
 
 applyThemeCssVariables();
@@ -78,6 +81,18 @@ createVaultShimmer(engine, vaultMeshes);
 // currently addressing it — see world.ts's computeIslandGeometries doc.
 const islandGeometries = computeIslandGeometries(DEMO_TRES);
 let flowController: FlowController = createFlowController(engine, islandGeometries, () => currentState);
+
+// A rare easter egg, entirely independent of SimState — it reads no
+// protocol state and stands for nothing in it. Kept well clear of the
+// mainland's coastline and every island's wall (a margin beyond each
+// one's real radius) so it only ever surfaces in open water, never
+// anywhere that could read as crossing a boundary this world takes
+// seriously.
+const whaleExclusionZones: WhaleExclusionZone[] = [
+  { x: mainlandGeometry.center.x, z: mainlandGeometry.center.z, radius: MAINLAND_RADIUS + 6 },
+  ...Array.from(islandGeometries.values()).map((island) => ({ x: island.center.x, z: island.center.z, radius: island.wallRadius + 6 })),
+];
+createWhaleController(engine, { exclusionZones: whaleExclusionZones });
 
 const treNames = new Map(DEMO_TRES.map((t) => [t.id, t.name]));
 
