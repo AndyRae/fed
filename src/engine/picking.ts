@@ -101,6 +101,12 @@ export function createPicker(options: PickerOptions): PickerHandle {
   let downX = 0;
   let downY = 0;
   let downAt = 0;
+  // Only a left-button press starts a click candidate. Right-drag now
+  // rotates the camera and middle-drag dollies it (see cameraRig.ts's
+  // Google Maps mouseButtons mapping) — without this, a quick right- or
+  // middle-click on the way to a drag would still open the inspector,
+  // which has nothing to do with what that button is for any more.
+  let tracking = false;
 
   function pick(clientX: number, clientY: number): THREE.Object3D | null {
     const rect = engine.renderer.domElement.getBoundingClientRect();
@@ -163,13 +169,19 @@ export function createPicker(options: PickerOptions): PickerHandle {
 
   function onPointerDown(event: PointerEvent): void {
     if (!enabled) return;
+    if (event.button !== 0) {
+      tracking = false;
+      return;
+    }
+    tracking = true;
     downX = event.clientX;
     downY = event.clientY;
     downAt = performance.now();
   }
 
   function onPointerUp(event: PointerEvent): void {
-    if (!enabled) return;
+    if (!enabled || !tracking) return;
+    tracking = false;
     const dx = event.clientX - downX;
     const dy = event.clientY - downY;
     const travelled = Math.hypot(dx, dy);

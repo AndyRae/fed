@@ -47,6 +47,26 @@ export function createCameraRig(engine: Engine): CameraRig {
   controls.maxDistance = 110;
   controls.maxPolarAngle = Math.PI * 0.49;
 
+  // Google Maps convention, not CAD convention — see PGSimCity's own
+  // camera.ts (https://github.com/NikolayS/PGSimCity), the source this is
+  // ported from. This reads as a world seen from above, so left-drag grabs
+  // the ground and moves it — the thing every map does — rather than
+  // orbiting around a fixed point, which feels backwards for exploring a
+  // place. Right-drag rotates; middle-drag still dollies. OrbitControls
+  // already swaps left-drag to rotate whenever shift/ctrl/meta is held (see
+  // its onMouseDown), so that alias comes for free and needs no extra code.
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.PAN,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.ROTATE,
+  };
+  // Dolly toward the cursor ray, not toward whatever `target` happens to be
+  // — PGSimCity's own comment calls this "the single biggest quality-of-
+  // life difference from a plain distance zoom", and it is: without it,
+  // scrolling to zoom in on something off-centre instead zooms in on the
+  // middle of the screen and drags the thing you wanted further away.
+  controls.zoomToCursor = true;
+
   engine.onBeforeRender(() => controls.update());
 
   function getPose(): CameraPoseVec {
