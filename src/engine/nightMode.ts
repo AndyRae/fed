@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { findPickableAncestor } from "./picking.ts";
 import { createVerticalGradientTexture } from "./renderer.ts";
 
 /**
@@ -48,21 +49,42 @@ const NIGHT_HEMI_INTENSITY = 0.35;
 const NIGHT_SUN_COLOR = 0xaebfe8;
 const NIGHT_SUN_INTENSITY = 0.45;
 
-// Every island-owned material glows in its own colour at night — the same
-// "more vibrant" effect a lit window or a lantern gets against a dark sky.
-// Uniform across every part on purpose: this is one effect applied evenly,
-// not a hand-tuned lighting design, so it can never accidentally suggest a
-// new semantic meaning for any one colour.
-const ISLAND_GLOW_INTENSITY = 0.45;
+// The *objects* glow at night, not the ground they stand on — real
+// buildings and vehicles on both the mainland and every island, the same
+// "lit window" effect a real settlement gets against a dark sky. Ground,
+// beach, the wall, the dock's own jetty, and route lines darken along with
+// the sea instead, exactly like the mainland's own terrain already did:
+// this is the same rule applied uniformly to both, not an island-only
+// effect and not a mainland-only exemption.
+const GLOWING_KINDS = new Set<string>([
+  "QUAY_OFFICE",
+  "MAINLAND_BUILDING",
+  "RESEARCHER_QUARTER",
+  "VAULT",
+  "WORKSHOP",
+  "GATE1_HARBOURMASTER",
+  "GATE2_INSPECTOR",
+  "CUSTOMS_HALL",
+  "FERRY",
+  "CONTAINER",
+  "CRATE",
+  "SUBMISSION",
+]);
 
-/** True if `object` or any ancestor belongs to a specific island — every top-level mesh `src/world/island.ts` and `src/engine/flowController.ts` build carries `userData.treId`, but most of their decorative children (a roof, a tree, a wake dot's own ferry) don't carry it themselves, so this walks up rather than checking `object` alone. Deliberately excludes the sea, the mainland, and the whale, none of which are ever tagged with a treId — night mode must only make islands glow, not everything in the scene. */
-function belongsToAnIsland(object: THREE.Object3D): boolean {
-  let current: THREE.Object3D | null = object;
-  while (current) {
-    if (current.userData.treId !== undefined) return true;
-    current = current.parent;
-  }
-  return false;
+const GLOW_INTENSITY = 0.45;
+
+/**
+ * True if `object` is, or is nested under, one of `GLOWING_KINDS` — reuses
+ * picking.ts's own "walk up to the nearest `userData.kind`-tagged ancestor"
+ * rule, since a building's roof or a vault's plinth never carries its own
+ * kind tag, only the structure itself does. A grass patch's nearest tagged
+ * ancestor is `ISLAND_LAND`, not in the set, so it's correctly excluded;
+ * a workshop's roof cap's nearest tagged ancestor is `WORKSHOP`, so it's
+ * correctly included.
+ */
+function isGlowingStructure(object: THREE.Object3D): boolean {
+  const kind = findPickableAncestor(object)?.userData.kind as string | undefined;
+  return kind !== undefined && GLOWING_KINDS.has(kind);
 }
 
 function setMaterialNightGlow(material: THREE.MeshStandardMaterial, enabled: boolean): void {
@@ -72,28 +94,29 @@ function setMaterialNightGlow(material: THREE.MeshStandardMaterial, enabled: boo
       material.userData.dayEmissiveIntensity = material.emissiveIntensity;
     }
     material.emissive.copy(material.color);
-    material.emissiveIntensity = ISLAND_GLOW_INTENSITY;
+    material.emissiveIntensity = GLOW_INTENSITY;
   } else if (material.userData.dayEmissive !== undefined) {
     material.emissive.setHex(material.userData.dayEmissive as number);
     material.emissiveIntensity = material.userData.dayEmissiveIntensity as number;
   }
 }
 
-function applyIslandGlow(scene: THREE.Scene, enabled: boolean): void {
+function applyStructureGlow(scene: THREE.Scene, enabled: boolean): void {
   scene.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return;
-    if (!belongsToAnIsland(object)) return;
+    if (!isGlowingStructure(object)) return;
     if (object.material instanceof THREE.MeshStandardMaterial) setMaterialNightGlow(object.material, enabled);
   });
 }
 
 /**
- * A purely cosmetic day/night toggle: it darkens the sky and the two
- * lights, and makes every island's own material glow softly in its own
- * colour — including gate markers, the vault, and any island-owned ferry
- * or crate. It reads no SimState and changes no protocol geometry, motion,
- * or timing; CLAUDE.md's honesty rules govern what things do and where
- * they go, not how brightly they're lit.
+ * A purely cosmetic day/night toggle: it darkens the sky, the two lights,
+ * and every stretch of ground and water, while every building and vehicle
+ * — on the mainland and on every island alike — glows softly in its own
+ * colour, the two gates and the vault included. It reads no SimState and
+ * changes no protocol geometry, motion, or timing; CLAUDE.md's honesty
+ * rules govern what things do and where they go, not how brightly they're
+ * lit.
  */
 export function createNightModeController(host: NightModeHost, options: NightModeOptions = {}): NightModeHandle {
   const daySky = host.scene.background;
@@ -120,7 +143,7 @@ export function createNightModeController(host: NightModeHost, options: NightMod
     host.sunLight.color.setHex(enabled ? NIGHT_SUN_COLOR : daySun.color);
     host.sunLight.intensity = enabled ? NIGHT_SUN_INTENSITY : daySun.intensity;
 
-    applyIslandGlow(host.scene, enabled);
+    applyStructureGlow(host.scene, enabled);
   }
 
   function toggle(): void {

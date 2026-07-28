@@ -15,6 +15,12 @@ function meshWithColor(color: number): THREE.Mesh {
   return new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color }));
 }
 
+function taggedMesh(kind: string, color: number): THREE.Mesh {
+  const mesh = meshWithColor(color);
+  mesh.userData.kind = kind;
+  return mesh;
+}
+
 describe("createNightModeController", () => {
   it("starts disabled", () => {
     const { host } = createHost();
@@ -63,39 +69,60 @@ describe("createNightModeController", () => {
     expect(host.scene.background).toBe(daySky);
   });
 
-  it("makes an island-owned material glow in its own colour at night", () => {
+  it("makes a building glow in its own colour at night, on an island", () => {
     const { host, scene } = createHost();
-    const island = new THREE.Group();
-    island.userData.treId = "tre-a";
-    const wall = meshWithColor(0x2d7a52);
-    island.add(wall);
-    scene.add(island);
+    const workshop = taggedMesh("WORKSHOP", 0x8fe0b8);
+    scene.add(workshop);
 
     const controller = createNightModeController(host, { nightSky: new THREE.Texture() });
     controller.setEnabled(true);
 
-    const material = wall.material as THREE.MeshStandardMaterial;
-    expect(material.emissive.getHex()).toBe(0x2d7a52);
+    const material = workshop.material as THREE.MeshStandardMaterial;
+    expect(material.emissive.getHex()).toBe(0x8fe0b8);
     expect(material.emissiveIntensity).toBeGreaterThan(0);
   });
 
-  it("reaches a nested child even though only its ancestor carries the treId tag", () => {
+  it("makes a building glow on the mainland too, not just on islands", () => {
     const { host, scene } = createHost();
-    const island = new THREE.Group();
-    island.userData.treId = "tre-a";
-    const building = new THREE.Group();
-    island.add(building);
-    const roof = meshWithColor(0x5c4a3d);
-    building.add(roof);
-    scene.add(island);
+    const office = taggedMesh("QUAY_OFFICE", 0xc9b389);
+    scene.add(office);
 
     const controller = createNightModeController(host, { nightSky: new THREE.Texture() });
     controller.setEnabled(true);
 
-    expect((roof.material as THREE.MeshStandardMaterial).emissive.getHex()).toBe(0x5c4a3d);
+    expect((office.material as THREE.MeshStandardMaterial).emissive.getHex()).toBe(0xc9b389);
   });
 
-  it("never glows anything outside an island — the sea, the mainland, decorative meshes with no treId", () => {
+  it("reaches a building's own decorative child even though only the building itself carries the kind tag", () => {
+    const { host, scene } = createHost();
+    const workshop = taggedMesh("WORKSHOP", 0x8fe0b8);
+    const roofCap = meshWithColor(0x5c4a3d);
+    workshop.add(roofCap);
+    scene.add(workshop);
+
+    const controller = createNightModeController(host, { nightSky: new THREE.Texture() });
+    controller.setEnabled(true);
+
+    expect((roofCap.material as THREE.MeshStandardMaterial).emissive.getHex()).toBe(0x5c4a3d);
+  });
+
+  it("darkens the ground instead of glowing it — island grass, the wall, and the mainland's own land all stay unlit", () => {
+    const { host, scene } = createHost();
+    const grass = taggedMesh("ISLAND_LAND", 0x3fae74);
+    const wall = taggedMesh("ISLAND_WALL", 0x2d7a52);
+    const mainlandLand = taggedMesh("MAINLAND_LAND", 0xc9b389);
+    scene.add(grass, wall, mainlandLand);
+
+    const controller = createNightModeController(host, { nightSky: new THREE.Texture() });
+    controller.setEnabled(true);
+
+    for (const mesh of [grass, wall, mainlandLand]) {
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      expect(material.emissive.getHex(), mesh.userData.kind as string).toBe(0x000000);
+    }
+  });
+
+  it("never glows anything untagged — the sea, the whale, decorative meshes with no kind", () => {
     const { host, scene } = createHost();
     const sea = meshWithColor(0x3aa0d8);
     scene.add(sea);
@@ -108,15 +135,12 @@ describe("createNightModeController", () => {
     expect(material.emissiveIntensity).toBe(1);
   });
 
-  it("restores each island material's exact original emissive state when night mode turns off", () => {
+  it("restores a building's exact original emissive state when night mode turns off", () => {
     const { host, scene } = createHost();
-    const island = new THREE.Group();
-    island.userData.treId = "tre-a";
-    const gate = meshWithColor(0xf2a934);
+    const gate = taggedMesh("GATE1_HARBOURMASTER", 0xf2a934);
     (gate.material as THREE.MeshStandardMaterial).emissive.setHex(0x111111);
     (gate.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.2;
-    island.add(gate);
-    scene.add(island);
+    scene.add(gate);
 
     const controller = createNightModeController(host, { nightSky: new THREE.Texture() });
     controller.setEnabled(true);
@@ -129,12 +153,9 @@ describe("createNightModeController", () => {
 
   it("stays correct across repeated toggling", () => {
     const { host, scene } = createHost();
-    const island = new THREE.Group();
-    island.userData.treId = "tre-a";
-    const wall = meshWithColor(0x2d7a52);
-    island.add(wall);
-    scene.add(island);
-    const material = wall.material as THREE.MeshStandardMaterial;
+    const ferry = taggedMesh("FERRY", 0x57c98f);
+    scene.add(ferry);
+    const material = ferry.material as THREE.MeshStandardMaterial;
 
     const controller = createNightModeController(host, { nightSky: new THREE.Texture() });
     controller.toggle();
@@ -142,6 +163,6 @@ describe("createNightModeController", () => {
     controller.toggle();
 
     expect(controller.isEnabled()).toBe(true);
-    expect(material.emissive.getHex()).toBe(0x2d7a52);
+    expect(material.emissive.getHex()).toBe(0x57c98f);
   });
 });
