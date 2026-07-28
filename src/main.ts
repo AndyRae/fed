@@ -14,6 +14,7 @@ import { createInitialSimState, decideOutputReview, decideProjectApproval, submi
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
 import { mountHud } from "./ui/hud.ts";
 import { mountInspectorPanel } from "./ui/inspectorPanel.ts";
+import { mountStatsPanel } from "./ui/statsPanel.ts";
 import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
 import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
@@ -27,13 +28,11 @@ if (!container) {
   throw new Error("#app root element is missing");
 }
 
-// Down to one island for now, to keep the on-island layout and execution
-// cycle legible while that's reworked. Back up to three once the single-
-// island geometry and choreography read clearly — see CLAUDE.md's world
-// metaphor table; adding islands back is just growing this list, since
-// buildWorld/computeIslandGeometries/the flow controller are all already
-// generic over an arbitrary TRE count.
-const DEMO_TRES = [{ id: "tre-a", name: "Isle of Ailsa" }];
+const DEMO_TRES = [
+  { id: "tre-a", name: "Isle of Ailsa" },
+  { id: "tre-b", name: "Isle of Kessel" },
+  { id: "tre-c", name: "Isle of Muck" },
+];
 
 const STUDY_NAMES = [
   "Cardiovascular Risk Study",
@@ -128,6 +127,10 @@ const inspector = mountInspectorPanel(document.body, {
   getState: () => currentState,
 });
 
+const statsPanel = mountStatsPanel(document.body, {
+  getState: () => currentState,
+});
+
 const picker = createPicker({
   engine,
   root: worldGroup,
@@ -214,6 +217,7 @@ function resumeAmbientDemo(): void {
   ambientTimer = window.setInterval(() => {
     currentState = tick(currentState, 1);
     scheduleNewOutputReviews();
+    statsPanel.update();
   }, 260);
 }
 function pauseAmbientDemo(): void {

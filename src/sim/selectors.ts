@@ -1,4 +1,4 @@
-import type { Crate, CrateId, ProjectApproval, ProjectId, SimState, TaskId, TesTask, TreId } from "../core/types.ts";
+import type { Crate, CrateId, ProjectApproval, ProjectId, SimState, TaskId, TaskStatus, TesTask, TreId } from "../core/types.ts";
 
 export function getTask(state: SimState, taskId: TaskId): TesTask | undefined {
   return state.tasks.find((t) => t.id === taskId);
@@ -23,4 +23,40 @@ export function getCrateForTask(state: SimState, taskId: TaskId): Crate | undefi
  */
 export function releasedCratesForProject(state: SimState, projectId: ProjectId): readonly Crate[] {
   return state.crates.filter((c) => c.projectId === projectId && c.status === "RELEASED");
+}
+
+const IN_FLIGHT_TASK_STATUSES: readonly TaskStatus[] = ["QUEUED", "INITIALIZING", "RUNNING"];
+/** A task counts as "run" once it has actually reached COMPLETE — whatever the workshop produced, regardless of what Gate 2 later decides about it. */
+const RAN_TASK_STATUSES: readonly TaskStatus[] = ["COMPLETE", "AWAITING_OUTPUT_REVIEW", "RELEASED", "OUTPUT_REFUSED"];
+
+/** Live totals for the activity panel — see src/ui/statsPanel.ts. Purely a read over SimState; never mutates it, never drives protocol state. */
+export interface ActivityStats {
+  readonly projectsSubmitted: number;
+  readonly gate1Approved: number;
+  readonly gate1Refused: number;
+  readonly tasksInFlight: number;
+  readonly analysesRun: number;
+  readonly gate2Released: number;
+  readonly gate2Refused: number;
+}
+
+/**
+ * A cross-island tally for the human observer's own dashboard — not a
+ * capability any island or the sim itself has. This is the same kind of
+ * aggregation honesty rule 6 already permits at the researcher's quay
+ * ("Aggregation of results happens at the researcher's quay, after
+ * release, and is shown there"); this just extends that to every stage of
+ * the funnel, for the UI layer, never for anything in `src/world` or
+ * `src/sim` itself.
+ */
+export function computeActivityStats(state: SimState): ActivityStats {
+  return {
+    projectsSubmitted: state.projects.length,
+    gate1Approved: state.approvals.filter((a) => a.status === "APPROVED").length,
+    gate1Refused: state.approvals.filter((a) => a.status === "REFUSED").length,
+    tasksInFlight: state.tasks.filter((t) => IN_FLIGHT_TASK_STATUSES.includes(t.status)).length,
+    analysesRun: state.tasks.filter((t) => RAN_TASK_STATUSES.includes(t.status)).length,
+    gate2Released: state.crates.filter((c) => c.status === "RELEASED").length,
+    gate2Refused: state.crates.filter((c) => c.status === "REFUSED").length,
+  };
 }

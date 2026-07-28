@@ -3,6 +3,8 @@
 
    .fsa-hud-*   the top instrument bar: title, scaled-time disclosure, tour
                 launch buttons.
+   .fsa-stats-* the bottom-left live activity panel: running totals read
+                straight from SimState.
    .fsa-tour-*  the lower-third narration card and its controls.
 
    No remote fonts, no CDN, no framework — system font stack and plain CSS
@@ -93,6 +95,64 @@ body.fsa-touring #fsa-hud-top {
 }
 body.fsa-touring #fsa-hud-top:hover,
 body.fsa-touring #fsa-hud-top:focus-within {
+  opacity: 1;
+}
+
+/* ------------------------------- stats panel ------------------------------ */
+
+#fsa-stats-panel {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 5;
+  min-width: 200px;
+  padding: 10px 14px;
+  background: var(--fsa-bg-panel);
+  border: 1px solid var(--fsa-line);
+  border-radius: 8px;
+  font-family: var(--fsa-font);
+  color: var(--fsa-ink);
+  transition: opacity var(--fsa-dur) ease;
+}
+
+.fsa-stats__title {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fsa-ink-faint);
+  margin-bottom: 6px;
+}
+
+.fsa-stats__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.fsa-stats__label {
+  color: var(--fsa-ink-faint);
+  white-space: nowrap;
+}
+
+.fsa-stats__value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Dims for the same reason and in the same way as the top bar — it reads
+   live simulation state, and the tour card drives a separate, paused-
+   ambient state while it runs, so a live-updating panel underneath it
+   would be a distraction, not a lie (the numbers are just stale, not
+   wrong: the ambient demo really is paused). */
+body.fsa-touring #fsa-stats-panel {
+  opacity: 0.3;
+}
+body.fsa-touring #fsa-stats-panel:hover,
+body.fsa-touring #fsa-stats-panel:focus-within {
   opacity: 1;
 }
 
@@ -305,7 +365,8 @@ body.fsa-touring #fsa-hud-top:focus-within {
 @media (prefers-reduced-motion: reduce) {
   #fsa-hud-top,
   .fsa-tour-card,
-  #fsa-inspector-layer {
+  #fsa-inspector-layer,
+  #fsa-stats-panel {
     transition: none;
   }
 }
