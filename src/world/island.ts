@@ -186,6 +186,52 @@ function buildTerrainPatches(treId: TreId, wallRadius: number): THREE.Mesh[] {
 }
 
 /**
+ * A handful of low-poly trees (a trunk plus a foliage cone) scattered
+ * across the island's interior — texture with actual height, not just flat
+ * ground colour. A separate seeded RNG stream (`${treId}-vegetation`) from
+ * buildTerrainPatches's own, so adding or resizing one population never
+ * shifts the other's positions. Kept within 0.45 × wallRadius, safely under
+ * the coastline's own minimum radius (0.62 × wallRadius, see
+ * generateIslandOutlinePoints), so a tree never ends up on the beach.
+ * Returned as THREE.Group instances, not bare Mesh — deliberately distinct
+ * from buildTerrainPatches's flat Mesh patches, so the two populations stay
+ * structurally separable.
+ */
+function buildVegetation(treId: TreId, wallRadius: number): THREE.Group[] {
+  const rng = createRng(hashTreId(`${treId}-vegetation`));
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: theme.trust.islandDirt, roughness: 0.9 });
+  const foliageMaterial = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(theme.trust.island).offsetHSL(0, 0.05, -0.15),
+    roughness: 0.85,
+  });
+
+  const trees: THREE.Group[] = [];
+  const count = 4 + Math.floor(rng() * 3);
+  for (let i = 0; i < count; i++) {
+    const angle = rng() * Math.PI * 2;
+    const radius = rng() * wallRadius * 0.45;
+    const scale = 0.7 + rng() * 0.6;
+    const trunkHeight = 0.5 * scale;
+    const foliageHeight = 0.9 * scale;
+
+    const group = new THREE.Group();
+    group.position.set(Math.cos(angle) * radius, GROUND_HEIGHT, Math.sin(angle) * radius);
+    group.userData.decoration = "TREE";
+
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * scale, 0.09 * scale, trunkHeight, 6), trunkMaterial);
+    trunk.position.y = trunkHeight / 2;
+    group.add(trunk);
+
+    const foliage = new THREE.Mesh(new THREE.ConeGeometry(0.42 * scale, foliageHeight, 7), foliageMaterial);
+    foliage.position.y = trunkHeight + foliageHeight / 2 - 0.05;
+    group.add(foliage);
+
+    trees.push(group);
+  }
+  return trees;
+}
+
+/**
  * One island (TRE): a separate trust zone with a hard perimeter. The
  * wall is inviolable inward — nothing here ever suggests otherwise; the
  * dock is the one point where the island's own ferry may cross it.
@@ -238,6 +284,13 @@ export function buildIsland(geometry: IslandGeometry, tre: Tre): THREE.Object3D 
   // ISLAND_LAND via findPickableAncestor's parent walk.
   for (const patch of buildTerrainPatches(tre.id, geometry.wallRadius)) {
     land.add(patch);
+  }
+
+  // Low-poly trees — same untagged-child-of-ISLAND_LAND convention as the
+  // terrain patches above, so a click on any of them still resolves to
+  // ISLAND_LAND.
+  for (const tree of buildVegetation(tre.id, geometry.wallRadius)) {
+    land.add(tree);
   }
 
   group.add(land);

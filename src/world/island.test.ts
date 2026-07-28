@@ -153,6 +153,16 @@ describe("buildIsland", () => {
     expect(dirtPatches.length).toBeGreaterThan(0);
   });
 
+  it("scatters a handful of low-poly trees across the island, each a trunk plus foliage, as children of ISLAND_LAND", () => {
+    const island = buildIsland(geometry, tre);
+    const land = findByKind(island, "ISLAND_LAND") as THREE.Mesh;
+    const trees = land.children.filter((c) => c.userData.decoration === "TREE");
+    expect(trees.length).toBeGreaterThan(0);
+    for (const tree of trees) {
+      expect(tree.children.length).toBe(2);
+    }
+  });
+
   it("is deterministic: the same island id always scatters the same terrain patches", () => {
     const a = buildIsland(geometry, tre);
     const b = buildIsland(geometry, tre);
