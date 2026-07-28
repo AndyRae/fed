@@ -1,9 +1,14 @@
 import * as THREE from "three";
 import type { Engine } from "./renderer.ts";
 
-/** Labels beyond this distance from the camera fade out — legible up close, uncluttered from an overview. */
-const FADE_START = 55;
-const FADE_END = 90;
+/**
+ * Labels beyond this distance from the camera fade out — legible up close,
+ * uncluttered from an overview. ~18% further than the original 55/90: from
+ * over the mainland, the islands sat just past the old fade-out, so their
+ * labels vanished right when they'd be most useful for orienting.
+ */
+const FADE_START = 65;
+const FADE_END = 105;
 
 export interface LabelTarget {
   readonly object: THREE.Object3D;
