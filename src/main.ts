@@ -148,6 +148,17 @@ const MIN_SPEED = 1;
 const MAX_SPEED = 6;
 let simSpeed = MIN_SPEED;
 
+/**
+ * A real approved project runs many analyses over its lifetime, not one —
+ * "projects submitted" and "analyses run" should read as very different
+ * numbers, not track each other 1:1. Each project's own tasks are spread
+ * out over time rather than all submitted in the same instant, so the
+ * demo reads as a project's ongoing work rather than a single burst.
+ */
+const MIN_TASKS_PER_PROJECT = 3;
+const MAX_TASKS_PER_PROJECT = 9;
+const BASE_TASK_STAGGER_MS = 900;
+
 const statsPanel = mountStatsPanel(document.body, {
   getState: () => currentState,
   speed: { min: MIN_SPEED, max: MAX_SPEED, initial: simSpeed, onChange: setSimSpeed },
@@ -242,9 +253,25 @@ function spawnDemoProject(): void {
     targetTreIds: DEMO_TRES.map((t) => t.id),
   });
   DEMO_TRES.forEach((tre, index) => {
-    currentState = submitTask(currentState, { id: `task-${id}-${tre.id}`, projectId: id, treId: tre.id });
     scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, (BASE_GATE1_DELAY_MS + index * BASE_GATE1_DELAY_MS) / simSpeed);
+    scheduleProjectTasks(id, tre.id);
   });
+}
+
+/**
+ * Submits this project's own run of analyses at this island, staggered
+ * over time rather than all at once. Tasks can be submitted whether or not
+ * Gate 1 has decided yet — an already-AWAITING_PROJECT_APPROVAL task just
+ * waits for the next poll after approval, same as a researcher queuing up
+ * more work under a project that's already running.
+ */
+function scheduleProjectTasks(projectId: string, treId: TreId): void {
+  const taskCount = MIN_TASKS_PER_PROJECT + Math.floor(demoRng() * (MAX_TASKS_PER_PROJECT - MIN_TASKS_PER_PROJECT + 1));
+  for (let i = 0; i < taskCount; i++) {
+    setTimeout(() => {
+      currentState = submitTask(currentState, { id: `task-${projectId}-${treId}-${i}`, projectId, treId });
+    }, (i * BASE_TASK_STAGGER_MS) / simSpeed);
+  }
 }
 spawnDemoProject();
 
