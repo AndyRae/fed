@@ -33,16 +33,19 @@
 
 #fsa-hud-top {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 16px;
+  left: 16px;
+  right: 16px;
   z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 18px;
+  gap: 8px 18px;
   padding: 10px 16px;
   background: var(--fsa-bg-panel);
-  border-bottom: 1px solid var(--fsa-line);
+  border: 1px solid var(--fsa-line);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   transition: opacity var(--fsa-dur) ease;
 }
 
@@ -313,7 +316,7 @@ body.fsa-touring #fsa-stats-panel:focus-within {
 
 #fsa-inspector-layer {
   position: fixed;
-  top: 64px;
+  top: 80px;
   right: 16px;
   z-index: 5;
   width: min(320px, calc(100% - 32px));
@@ -386,6 +389,51 @@ body.fsa-touring #fsa-stats-panel:focus-within {
 .fsa-inspector__detail p {
   margin: 6px 0 0;
   line-height: 1.5;
+}
+
+/* --------------------------------- mobile ---------------------------------- */
+
+/* Below this width the top bar's title + disclosure + tour buttons no
+   longer fit on one line without truncating the honesty-rule-7 disclosure
+   text (see hud.ts) or squeezing the tour buttons unreadably small. Stack
+   them as three clean rows instead of letting flex-wrap break mid-row in
+   whatever place happens to run out of space. */
+@media (max-width: 640px) {
+  #fsa-hud-top {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .fsa-hud-top__title {
+    font-size: 14px;
+  }
+  .fsa-hud-top__disclosure {
+    font-size: 11px;
+    flex: none;
+  }
+  .fsa-hud-top__tours {
+    flex-wrap: wrap;
+  }
+
+  #fsa-stats-panel {
+    left: 10px;
+    bottom: 10px;
+    min-width: 0;
+    max-width: calc(100% - 20px);
+  }
+
+  #fsa-inspector-layer {
+    /* The stacked bar above is taller and its own height varies with how
+       many tour buttons wrap, so this leaves generous clearance rather
+       than tracking the bar's exact measured height. */
+    top: 190px;
+    right: 10px;
+    width: calc(100% - 20px);
+  }
 }
 
 /* ------------------------------ reduced motion ---------------------------- */
