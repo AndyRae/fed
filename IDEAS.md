@@ -6,20 +6,6 @@ between sessions. When one of these gets built, move its section into
 `CHANGELOG.md` (or `SIMPLIFICATIONS.md`, if it turns out to require a
 documented departure) and delete it from here.
 
-## Interactivity
-
-### Let the visitor be a gate
-
-Right now Gate 1 and Gate 2 decisions in the ambient demo are timers with
-a weighted coin flip (`GATE1_REFUSAL_RATE`/`GATE2_REFUSAL_RATE` in
-`src/main.ts`) — the visitor only ever watches a human decide. A toggle
-that hands control of one island's gates to the visitor (click the
-harbourmaster's office, approve or refuse the pending project yourself;
-same for the customs inspector and a held crate) would turn "safe people"
-from a label into something you *do*. Probably the single highest-leverage
-idea here. Scope as an explicit mode so the unattended ambient demo can
-keep running its own timers when nobody's driving.
-
 ## Atmosphere
 
 ### Sound
