@@ -127,8 +127,27 @@ const inspector = mountInspectorPanel(document.body, {
   getState: () => currentState,
 });
 
+// --- Simulation speed ----------------------------------------------------
+//
+// A live control on how fast the ambient demo's clock runs — not a
+// protocol concept, just a UI knob layered on top of the already-scaled
+// time the HUD discloses (honesty rule 7: the choreography is compressed
+// either way; this only changes by how much). Every interval this demo
+// schedules is one of the BASE_*_MS constants below divided by simSpeed,
+// so 1x — the default — reproduces exactly the pacing this demo always
+// ran at. setSimSpeed (defined near the timers it rebuilds) is the only
+// place simSpeed is ever assigned.
+const BASE_SPAWN_INTERVAL_MS = 2400;
+const BASE_TICK_INTERVAL_MS = 260;
+const BASE_GATE1_DELAY_MS = 700;
+const BASE_GATE2_DELAY_MS = 1600;
+const MIN_SPEED = 1;
+const MAX_SPEED = 6;
+let simSpeed = MIN_SPEED;
+
 const statsPanel = mountStatsPanel(document.body, {
   getState: () => currentState,
+  speed: { min: MIN_SPEED, max: MAX_SPEED, initial: simSpeed, onChange: setSimSpeed },
 });
 
 const picker = createPicker({
@@ -194,11 +213,14 @@ function scheduleNewOutputReviews(): void {
     // queue must visibly hold, not just skip straight to the outcome.
     setTimeout(() => {
       currentState = decideOutputReview(currentState, { crateId: crate.id, decision });
-    }, 1600);
+    }, BASE_GATE2_DELAY_MS / simSpeed);
   }
 }
 
-const MAX_DEMO_PROJECTS = 110;
+// Generous enough that even the top of the speed range takes a long, real
+// session to exhaust — see spawnDemoProject's own doc comment on why a cap
+// exists at all.
+const MAX_DEMO_PROJECTS = 2000;
 let projectCounter = 0;
 
 /**
@@ -218,11 +240,18 @@ function spawnDemoProject(): void {
   });
   DEMO_TRES.forEach((tre, index) => {
     currentState = submitTask(currentState, { id: `task-${id}-${tre.id}`, projectId: id, treId: tre.id });
-    scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, 700 + index * 700);
+    scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, (BASE_GATE1_DELAY_MS + index * BASE_GATE1_DELAY_MS) / simSpeed);
   });
 }
 spawnDemoProject();
-window.setInterval(spawnDemoProject, 2400);
+
+let spawnTimer: number | null = null;
+/** Torn down and rebuilt by setSimSpeed whenever the speed changes. */
+function restartSpawnTimer(): void {
+  if (spawnTimer != null) window.clearInterval(spawnTimer);
+  spawnTimer = window.setInterval(spawnDemoProject, BASE_SPAWN_INTERVAL_MS / simSpeed);
+}
+restartSpawnTimer();
 
 let ambientTimer: number | null = null;
 function resumeAmbientDemo(): void {
@@ -231,7 +260,7 @@ function resumeAmbientDemo(): void {
     currentState = tick(currentState, 1);
     scheduleNewOutputReviews();
     statsPanel.update();
-  }, 260);
+  }, BASE_TICK_INTERVAL_MS / simSpeed);
 }
 function pauseAmbientDemo(): void {
   if (ambientTimer == null) return;
@@ -239,6 +268,24 @@ function pauseAmbientDemo(): void {
   ambientTimer = null;
 }
 resumeAmbientDemo();
+
+/**
+ * Applies a new speed from the stats panel's slider: rebuilds the spawn
+ * timer immediately, and rebuilds the ambient tick timer only if it's
+ * currently running — rebuilding a paused one would incorrectly resume it
+ * while a tour has the world (see pauseAmbientDemo/resumeAmbientDemo).
+ * Already-scheduled Gate 1/Gate 2 decisions keep the delay they were given
+ * when scheduled; only decisions scheduled after this point use the new
+ * speed.
+ */
+function setSimSpeed(next: number): void {
+  simSpeed = next;
+  restartSpawnTimer();
+  if (ambientTimer != null) {
+    pauseAmbientDemo();
+    resumeAmbientDemo();
+  }
+}
 
 const CAMERA_FLIGHT_SECONDS = 1.5;
 

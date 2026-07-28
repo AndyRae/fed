@@ -5,13 +5,24 @@ import { el, setText } from "./dom.ts";
 /**
  * The live activity panel: a compact tally of the whole funnel — the
  * PGSimCity-style "instrument readout" corner, scoped to what this model
- * actually tracks instead of database metrics. Every number here is a
- * straight read of `computeActivityStats(getState())`; the panel never
- * drives protocol state, only displays it. Not unit tested — DOM-only,
- * same precedent as hud.ts and inspectorPanel.ts.
+ * actually tracks instead of database metrics — plus, PGSimCity-style
+ * again, the one live control this demo has: how fast it runs. Every
+ * number here is a straight read of `computeActivityStats(getState())`;
+ * the panel never drives protocol state itself, only displays it and
+ * reports the speed control's own value back to main.ts, which owns what
+ * "speed" actually does. Not unit tested — DOM-only, same precedent as
+ * hud.ts and inspectorPanel.ts.
  */
+export interface SpeedControlOptions {
+  readonly min: number;
+  readonly max: number;
+  readonly initial: number;
+  readonly onChange: (speed: number) => void;
+}
+
 export interface StatsPanelOptions {
   readonly getState: () => SimState;
+  readonly speed: SpeedControlOptions;
 }
 
 export interface StatsPanelHandle {
@@ -39,10 +50,36 @@ export function mountStatsPanel(root: HTMLElement, options: StatsPanelOptions): 
 
   const rows = [projects, gate1, inFlight, analyses, gate2];
 
+  const speedValue = el("span", { class: "fsa-stats__speed-value", text: `${options.speed.initial}×` });
+  const speedSlider = el("input", {
+    type: "range",
+    id: "fsa-stats-speed",
+    min: String(options.speed.min),
+    max: String(options.speed.max),
+    step: "1",
+    value: String(options.speed.initial),
+    "aria-label": "Simulation speed",
+    on: {
+      input: (event: Event) => {
+        const speed = Number((event.target as HTMLInputElement).value);
+        setText(speedValue, `${speed}×`);
+        options.speed.onChange(speed);
+      },
+    },
+  });
+  const speedRow = el(
+    "div",
+    { class: "fsa-stats__speed" },
+    el("label", { for: "fsa-stats-speed", text: "Speed" }),
+    speedSlider,
+    speedValue,
+  );
+
   const panel = el(
     "div",
     { id: "fsa-stats-panel", class: "fsa-stats" },
     el("div", { class: "fsa-stats__title", text: "Live activity" }),
+    speedRow,
     ...rows.map((row) =>
       el("div", { class: "fsa-stats__row" }, el("span", { class: "fsa-stats__label", text: row.label }), row.valueEl),
     ),
