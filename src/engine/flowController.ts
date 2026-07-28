@@ -34,6 +34,16 @@ const COMPUTE_GLOW_HEIGHT_VAULT = GROUND_HEIGHT + 1.8;
 const COMPUTE_GLOW_HEIGHT_WORKSHOP = GROUND_HEIGHT + 2.6;
 const COMPUTE_GLOW_PULSE_HZ = 5;
 
+// A slow, gentle halo at a gate marker while it has something waiting on a
+// human decision — honesty rule 3, "both gates are humans with visible
+// waiting". Distinct from DECISION_PULSE_HEIGHT (a brief one-shot grow/fade
+// the instant a decision lands) so the two can never be mistaken for one
+// another, and built from TorusGeometry rather than buildRingMesh's
+// RingGeometry so it can never be picked up by anything counting decision
+// pulses or the compute glow.
+const GATE_WAITING_GLOW_HEIGHT = GROUND_HEIGHT + 0.12;
+const GATE_WAITING_PULSE_HZ = 3;
+
 // A short, fading trail of dots behind each moving ferry — purely decorative
 // (see CLAUDE.md "Visual language"), but it reinforces honesty rule 1 for
 // free: a wake that only ever originates from a moving ferry and fades
@@ -94,6 +104,33 @@ interface ComputeGlow {
   readonly vaultMaterial: THREE.MeshStandardMaterial;
   readonly workshopMesh: THREE.Mesh;
   readonly workshopMaterial: THREE.MeshStandardMaterial;
+}
+
+/** A gentle halo at each of this island's two gate markers, visible while that gate has something waiting on a human decision — see GATE_WAITING_GLOW_HEIGHT's own doc comment. */
+interface GateWaitingGlow {
+  readonly gate1Mesh: THREE.Mesh;
+  readonly gate1Material: THREE.MeshStandardMaterial;
+  readonly gate2Mesh: THREE.Mesh;
+  readonly gate2Material: THREE.MeshStandardMaterial;
+}
+
+/** Untagged (no userData.kind), same precedent as buildRingMesh — decorative-only, never resolves under the picker. userData.gateWaitingTreId/gate identify it for tests only. */
+function buildGateWaitingGlowMesh(treId: TreId, gate: "GATE1" | "GATE2"): THREE.Mesh {
+  const material = new THREE.MeshStandardMaterial({
+    color: theme.gate.amber,
+    emissive: theme.gate.amber,
+    emissiveIntensity: 1,
+    transparent: true,
+    opacity: 0,
+    roughness: 0.35,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.07, 8, 40), material);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.visible = false;
+  mesh.userData.gateWaitingTreId = treId;
+  mesh.userData.gate = gate;
+  return mesh;
 }
 
 /** One recorded ferry position, ageing toward WAKE_LIFETIME_SECONDS until it's dropped. */
@@ -256,6 +293,7 @@ export function createFlowController(
 ): FlowController {
   const ferryMeshes = new Map<TreId, THREE.Object3D>();
   const computeGlows = new Map<TreId, ComputeGlow>();
+  const gateWaitingGlows = new Map<TreId, GateWaitingGlow>();
   const wakeTrails = new Map<TreId, WakeTrail>();
   for (const [treId, geometry] of islands) {
     const ferry = buildFerryMesh(treId);
@@ -288,6 +326,21 @@ export function createFlowController(
       vaultMaterial: vaultGlow.material as THREE.MeshStandardMaterial,
       workshopMesh: workshopGlow,
       workshopMaterial: workshopGlow.material as THREE.MeshStandardMaterial,
+    });
+
+    const gate1Glow = buildGateWaitingGlowMesh(treId, "GATE1");
+    gate1Glow.position.set(geometry.harbourmasterOffice.x, geometry.harbourmasterOffice.y + GATE_WAITING_GLOW_HEIGHT, geometry.harbourmasterOffice.z);
+    host.scene.add(gate1Glow);
+
+    const gate2Glow = buildGateWaitingGlowMesh(treId, "GATE2");
+    gate2Glow.position.set(geometry.customsHall.x, geometry.customsHall.y + GATE_WAITING_GLOW_HEIGHT, geometry.customsHall.z);
+    host.scene.add(gate2Glow);
+
+    gateWaitingGlows.set(treId, {
+      gate1Mesh: gate1Glow,
+      gate1Material: gate1Glow.material as THREE.MeshStandardMaterial,
+      gate2Mesh: gate2Glow,
+      gate2Material: gate2Glow.material as THREE.MeshStandardMaterial,
     });
   }
 
@@ -443,6 +496,28 @@ export function createFlowController(
   }
 
   /**
+   * A gate glows exactly while it has something real waiting on it: Gate 1
+   * while any of this island's own project approvals is PENDING, Gate 2
+   * while any of its crates is HELD. Read straight off SimState every
+   * frame, like updateComputeGlows — never driven by an event, so a state
+   * source that jumps straight into the middle of a wait (a tour stepping
+   * to a stop, or resuming after a reload) still shows it correctly.
+   */
+  function updateGateWaitingGlows(state: SimState): void {
+    const pulse = 0.55 + 0.45 * Math.sin(elapsedTotal * GATE_WAITING_PULSE_HZ);
+    const opacity = 0.2 + 0.4 * pulse;
+    for (const [treId, glow] of gateWaitingGlows) {
+      const gate1Pending = state.approvals.some((a) => a.treId === treId && a.status === "PENDING");
+      glow.gate1Mesh.visible = gate1Pending;
+      if (gate1Pending) glow.gate1Material.opacity = opacity;
+
+      const gate2Pending = state.crates.some((c) => c.treId === treId && c.status === "HELD");
+      glow.gate2Mesh.visible = gate2Pending;
+      if (gate2Pending) glow.gate2Material.opacity = opacity;
+    }
+  }
+
+  /**
    * Records a new sample point behind a ferry every WAKE_SAMPLE_INTERVAL_SECONDS
    * while it has an active tween, ages every existing sample regardless of
    * whether the ferry is currently moving (so the trail keeps fading and
@@ -503,6 +578,7 @@ export function createFlowController(
     const state = getState();
     handleNewEvents(state);
     updateComputeGlows(state);
+    updateGateWaitingGlows(state);
     updatePulses(deltaSeconds);
 
     for (let i = tweens.length - 1; i >= 0; i--) {
@@ -548,6 +624,11 @@ export function createFlowController(
         host.scene.remove(glow.workshopMesh);
       }
       computeGlows.clear();
+      for (const glow of gateWaitingGlows.values()) {
+        host.scene.remove(glow.gate1Mesh);
+        host.scene.remove(glow.gate2Mesh);
+      }
+      gateWaitingGlows.clear();
     },
   };
 }

@@ -467,6 +467,48 @@ describe("the vault/workshop compute glow", () => {
   });
 });
 
+describe("gate waiting glow", () => {
+  function gateGlow(scene: THREE.Scene, treId: string, gate: "GATE1" | "GATE2"): THREE.Mesh {
+    let found: THREE.Mesh | undefined;
+    scene.traverse((o) => {
+      if (o.userData.gateWaitingTreId === treId && o.userData.gate === gate) found = o as THREE.Mesh;
+    });
+    return found!;
+  }
+
+  it("glows at the harbourmaster's office while a project approval is pending, and stops once Gate 1 decides", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    createFlowController(host, islands, () => state);
+
+    frame(0.01);
+    expect(gateGlow(host.scene, "tre-a", "GATE1").visible).toBe(true);
+
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    for (let i = 0; i < 20; i++) frame(0.1); // let the decision pulse fade too
+    expect(gateGlow(host.scene, "tre-a", "GATE1").visible).toBe(false);
+  });
+
+  it("glows at this island's own customs hall while a crate is held, and stops once Gate 2 decides", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = twoIslandWorldWithCollectedTask();
+    state = tick(state, 4); // -> AWAITING_OUTPUT_REVIEW, crate HELD
+    const crate = getCrateForTask(state, "t1");
+    expect(crate).toBeDefined();
+    createFlowController(host, islands, () => state);
+
+    for (let i = 0; i < 15; i++) frame(0.1); // let the hold leg settle first
+    expect(gateGlow(host.scene, "tre-a", "GATE2").visible).toBe(true);
+
+    state = decideOutputReview(state, { crateId: crate!.id, decision: "RELEASED" });
+    for (let i = 0; i < 20; i++) frame(0.1);
+    expect(gateGlow(host.scene, "tre-a", "GATE2").visible).toBe(false);
+  });
+});
+
 describe("scrubbing through precomputed states (tour stepping)", () => {
   it("never re-fires an already-seen event when the state source moves backward then forward again", () => {
     const { host, frame } = createFakeHost();
