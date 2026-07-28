@@ -253,6 +253,22 @@ describe("real geometry: workflowPath", () => {
   });
 });
 
+describe("real geometry: mainlandGeometry.quayOffice", () => {
+  it("sits close beside the dock, not out over the water on it", () => {
+    const office = mainlandGeometry.quayOffice;
+    const dock = mainlandGeometry.quayDock;
+    expect(distance(office, dock)).toBeGreaterThan(0.5);
+    expect(distance(office, dock)).toBeLessThan(6);
+  });
+
+  it("is distinct from the mainland centre, the dock, and the researcher quarter", () => {
+    const office = mainlandGeometry.quayOffice;
+    expect(distance(office, mainlandGeometry.center)).toBeGreaterThan(0.5);
+    expect(distance(office, mainlandGeometry.quayDock)).toBeGreaterThan(0.5);
+    expect(distance(office, mainlandGeometry.researcherQuarter)).toBeGreaterThan(0.5);
+  });
+});
+
 describe("real geometry: mainlandGeometry.researcherQuarter", () => {
   it("sits on the mainland, on the opposite side from the quay dock", () => {
     const quarter = mainlandGeometry.researcherQuarter;

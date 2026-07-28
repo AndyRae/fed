@@ -96,6 +96,7 @@ const LABELLED_KINDS = new Set([
   "GATE2_INSPECTOR",
   "CUSTOMS_HALL",
   "MAINLAND_DOCK",
+  "QUAY_OFFICE",
   "RESEARCHER_QUARTER",
 ]);
 const labelTargets: { object: typeof worldGroup; text: string }[] = [];

@@ -133,6 +133,43 @@ function buildResearcherQuarter(): THREE.Object3D {
   return group;
 }
 
+const OFFICE_BASE_HEIGHT = 1.6;
+const OFFICE_ROOF_HEIGHT = 1.4;
+
+/**
+ * The submission layer's own building — see CLAUDE.md's world-metaphor
+ * table row for "The mainland port". Where a researcher's submission is
+ * actually received and an approved result is actually handed back, made
+ * concrete as a real structure beside the dock rather than an implied
+ * capability of the bare jetty. Coloured with mainlandAccent3 (the same
+ * "official" grey-blue the dock's own bollards already use) and the
+ * shared roof colour — deliberately not the researcher quarter's own
+ * landmark colour (this isn't researchers or their institutions) and
+ * never the reserved gate amber (this is a place, not a human decision).
+ */
+function buildQuayOffice(): THREE.Object3D {
+  const office = new THREE.Mesh(
+    new THREE.BoxGeometry(1.8, OFFICE_BASE_HEIGHT, 1.8),
+    new THREE.MeshStandardMaterial({ color: theme.untrusted.mainlandAccent3, roughness: 0.7 }),
+  );
+  office.position.set(
+    mainlandGeometry.quayOffice.x,
+    SEA_LEVEL_Y + MAINLAND_GROUND_HEIGHT + OFFICE_BASE_HEIGHT / 2,
+    mainlandGeometry.quayOffice.z,
+  );
+  office.userData.kind = "QUAY_OFFICE";
+
+  const roof = new THREE.Mesh(
+    new THREE.ConeGeometry(1.5, OFFICE_ROOF_HEIGHT, 4),
+    new THREE.MeshStandardMaterial({ color: theme.untrusted.roof, roughness: 0.6 }),
+  );
+  roof.rotation.y = Math.PI / 4;
+  roof.position.set(0, OFFICE_BASE_HEIGHT / 2 + OFFICE_ROOF_HEIGHT / 2, 0);
+  office.add(roof);
+
+  return office;
+}
+
 /** Small bollard posts around the quay dock, same detail treatment an island's own dock got — a real jetty, not a floating slab. */
 function buildDockBollards(): THREE.Mesh[] {
   const bollardGeometry = new THREE.CylinderGeometry(0.12, 0.14, 0.5, 8);
@@ -179,6 +216,8 @@ export function buildMainland(): THREE.Object3D {
   dock.userData.kind = "MAINLAND_DOCK";
   for (const bollard of buildDockBollards()) dock.add(bollard);
   group.add(dock);
+
+  group.add(buildQuayOffice());
 
   // Invisible — no geometry, so it's never raycast-pickable itself — just
   // an elevated anchor for the mainland's own floating label.

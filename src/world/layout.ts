@@ -144,6 +144,14 @@ export interface MainlandGeometry {
   readonly center: Vec3;
   readonly quayDock: Vec3;
   /**
+   * The submission layer's own building, right beside the dock — see
+   * CLAUDE.md's world-metaphor table row for "The mainland port". Where a
+   * researcher's submission is actually received and an approved result is
+   * actually handed back, made concrete as a real structure rather than an
+   * implied capability of the bare dock platform.
+   */
+  readonly quayOffice: Vec3;
+  /**
    * Where researchers and their institutions are, collectively — the
    * visual origin of a submitted task's own trip to the quay (see
    * `submissionPath`). Decorative and collective, not a new gate: the
@@ -156,6 +164,10 @@ export interface MainlandGeometry {
 export const mainlandGeometry: MainlandGeometry = {
   center: { x: 0, y: SEA_LEVEL_Y, z: -32 },
   quayDock: { x: 0, y: SEA_LEVEL_Y, z: -24 },
+  // Beside the dock, on solid ground rather than out over the jetty itself
+  // — clear of the dock's own footprint (half-width 1.5) and well inside
+  // the coastline.
+  quayOffice: { x: -3.5, y: SEA_LEVEL_Y, z: -26 },
   // On the inland side, away from the quay's own sea-facing edge, so the
   // submission's trip to the dock reads as a real crossing of the mainland
   // rather than a few units' shuffle.

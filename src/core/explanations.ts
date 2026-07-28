@@ -16,6 +16,7 @@ export const ENTITY_KINDS = [
   "SEA",
   "MAINLAND_LAND",
   "MAINLAND_DOCK",
+  "QUAY_OFFICE",
   "MAINLAND_BUILDING",
   "RESEARCHER_QUARTER",
   "ISLAND_LAND",
@@ -56,6 +57,12 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     plain: "Where a researcher submits a project and its tasks, and where approved results simply arrive — no further check happens here.",
     detail:
       "Researcher / submitter. Tasks begin here, and released results arrive directly here from each island's own customs hall; there is no customs hall or inspector on the mainland. Aggregation of released results across every TRE that approved the project happens here too — the one point in the model that reads across islands, and only after each island's own Gate 2.",
+  },
+  QUAY_OFFICE: {
+    title: "The quay office",
+    plain: "The building where the submission layer itself lives — where a researcher's project and tasks are actually received, and where approved results are actually handed back.",
+    detail:
+      "Makes CLAUDE.md's world-metaphor table row for \"The mainland port\" (Submission layer) concrete as a real structure, rather than an implied capability of the bare dock platform beside it. No protocol role beyond that: submitProject/submitTask happen here in world terms, and releasedCratesForProject's aggregation for the researcher completes here too.",
   },
   MAINLAND_BUILDING: {
     title: "A quay building",

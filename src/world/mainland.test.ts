@@ -39,6 +39,35 @@ describe("buildMainland", () => {
     expect(dock.position.z).toBeCloseTo(mainlandGeometry.quayDock.z, 5);
   });
 
+  it("places exactly one quay office, at the real quay office position", () => {
+    const offices = findAllByKind(buildMainland(), "QUAY_OFFICE");
+    expect(offices).toHaveLength(1);
+    expect(offices[0]!.position.x).toBeCloseTo(mainlandGeometry.quayOffice.x, 5);
+    expect(offices[0]!.position.z).toBeCloseTo(mainlandGeometry.quayOffice.z, 5);
+  });
+
+  it("gives the quay office a colour distinct from the researcher quarter's own landmark and from the reserved gate amber", () => {
+    const mainland = buildMainland();
+    const office = findByKind(mainland, "QUAY_OFFICE") as THREE.Mesh;
+    const landmark = findByKind(mainland, "RESEARCHER_QUARTER") as THREE.Mesh;
+    const officeColor = (office.material as THREE.MeshStandardMaterial).color.getHex();
+    expect(officeColor).not.toBe((landmark.material as THREE.MeshStandardMaterial).color.getHex());
+    expect(officeColor).not.toBe(theme.gate.amber);
+  });
+
+  it("sits the quay office above the land's own true flat surface, not embedded in its extrude bevel", () => {
+    const mainland = buildMainland();
+    mainland.updateMatrixWorld(true);
+    const land = findByKind(mainland, "MAINLAND_LAND") as THREE.Mesh;
+    land.geometry.computeBoundingBox();
+    const trueSurfaceY = land.position.y + land.geometry.boundingBox!.max.y;
+
+    const office = findByKind(mainland, "QUAY_OFFICE") as THREE.Mesh;
+    const worldPos = new THREE.Vector3();
+    office.getWorldPosition(worldPos);
+    expect(worldPos.y).toBeGreaterThan(trueSurfaceY);
+  });
+
   it("gives the mainland a label anchor above its centre, with no geometry of its own to be picked", () => {
     const anchor = findByKind(buildMainland(), "MAINLAND_LABEL_ANCHOR")!;
     expect(anchor.position.x).toBeCloseTo(mainlandGeometry.center.x, 5);
