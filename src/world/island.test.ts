@@ -127,6 +127,17 @@ describe("buildIsland", () => {
     expect(material.color.getHex()).not.toBe(theme.trust.island);
   });
 
+  it("gives the island a foam ring blending its beach into the open sea, distinct from both", () => {
+    const island = buildIsland(geometry, tre);
+    const foam = findByKind(island, "ISLAND_FOAM") as THREE.Mesh;
+    expect(foam.position.x).toBeCloseTo(geometry.center.x, 5);
+    expect(foam.position.z).toBeCloseTo(geometry.center.z, 5);
+    const material = foam.material as THREE.MeshStandardMaterial;
+    expect(material.color.getHex()).toBe(theme.untrusted.foam);
+    expect(material.color.getHex()).not.toBe(theme.trust.islandBeach);
+    expect(material.color.getHex()).not.toBe(theme.untrusted.sea);
+  });
+
   it("scatters textured grass and dirt patches across the land, as children of ISLAND_LAND", () => {
     const island = buildIsland(geometry, tre);
     const land = findByKind(island, "ISLAND_LAND") as THREE.Mesh;

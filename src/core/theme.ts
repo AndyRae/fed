@@ -33,6 +33,8 @@ export const theme = {
     plaza: 0xaba290,
     /** A submitted task's own colour on its one-way trip from the researcher quarter to the quay — see engine/flowController.ts. Deliberately a pale "paperwork" tone, distinct from the ferry's container (trust.ferry) and the crate it will eventually become (crate.body): this hasn't been agreed to by any island yet. */
     submission: 0xeee0c5,
+    /** A thin, lighter ring where each island's own beach meets the open sea (see world/island.ts) — purely a coastline blend, not a new zone or gate; still the untrusted role, just a lighter tone of it. */
+    foam: 0xdff3fa,
   },
   /** Reserved exclusively for the two human gates: Gate 1 (project approval) and Gate 2 (output review). Never used for anything else. */
   gate: {

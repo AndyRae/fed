@@ -80,6 +80,12 @@ const BEACH_HEIGHT = 0.55;
 /** How far the beach's outer edge flares out past the grass's own coastline, before being clamped safely inside the wall. */
 const BEACH_OUTER_SCALE = 1.3;
 
+/** The beach's own outer boundary — shared by buildIslandBeachGeometry and buildIslandFoamGeometry so the foam ring's inner edge always traces exactly the beach's outer edge, with no gap or overlap between sand and foam. */
+function computeBeachOuterPoints(treId: TreId, wallRadius: number): THREE.Vector2[] {
+  const innerPoints = generateIslandOutlinePoints(treId, wallRadius);
+  return innerPoints.map((p) => p.clone().setLength(Math.min(p.length() * BEACH_OUTER_SCALE, wallRadius * 0.94)));
+}
+
 /**
  * A sandy ring hugging the grass's own coastline, lower than the grass
  * (BEACH_HEIGHT < ISLAND_HEIGHT) so the island reads as a small raised,
@@ -90,7 +96,7 @@ const BEACH_OUTER_SCALE = 1.3;
  */
 function buildIslandBeachGeometry(treId: TreId, wallRadius: number): THREE.BufferGeometry {
   const innerPoints = generateIslandOutlinePoints(treId, wallRadius);
-  const outerPoints = innerPoints.map((p) => p.clone().setLength(Math.min(p.length() * BEACH_OUTER_SCALE, wallRadius * 0.94)));
+  const outerPoints = computeBeachOuterPoints(treId, wallRadius);
   const shape = new THREE.Shape(outerPoints);
   shape.holes.push(new THREE.Path(innerPoints));
   const geometry = new THREE.ExtrudeGeometry(shape, {
@@ -101,6 +107,27 @@ function buildIslandBeachGeometry(treId: TreId, wallRadius: number): THREE.Buffe
     bevelSegments: 1,
     curveSegments: 10,
   });
+  geometry.rotateX(-Math.PI / 2);
+  return geometry;
+}
+
+/** How far the foam's outer edge flares out past the beach's own outer edge, before being clamped safely inside the wall (with more headroom than the beach's own 0.94, since foam has no bevel eating into that margin). */
+const FOAM_OUTER_SCALE = 1.06;
+
+/**
+ * A thin, flat ring in open water just past the beach's own outer edge —
+ * where sand gives way to sea. Built the same way as the beach itself: a
+ * shape with a hole whose inner boundary traces exactly the beach's outer
+ * boundary (computeBeachOuterPoints), so there is never a gap between sand
+ * and foam, only the shared edge. Flat (ShapeGeometry, no extrude depth) and
+ * sits just above sea level — it's a surface blend, not a landform.
+ */
+function buildIslandFoamGeometry(treId: TreId, wallRadius: number): THREE.BufferGeometry {
+  const innerPoints = computeBeachOuterPoints(treId, wallRadius);
+  const outerPoints = innerPoints.map((p) => p.clone().setLength(Math.min(p.length() * FOAM_OUTER_SCALE, wallRadius * 0.95)));
+  const shape = new THREE.Shape(outerPoints);
+  shape.holes.push(new THREE.Path(innerPoints));
+  const geometry = new THREE.ShapeGeometry(shape, 10);
   geometry.rotateX(-Math.PI / 2);
   return geometry;
 }
@@ -179,6 +206,24 @@ export function buildIsland(geometry: IslandGeometry, tre: Tre): THREE.Object3D 
   beach.userData.kind = "ISLAND_BEACH";
   beach.userData.treId = tre.id;
   group.add(beach);
+
+  // Where the beach gives way to open water — see buildIslandFoamGeometry's
+  // own doc comment. A hair above sea level so it reads as sitting on the
+  // water's surface rather than z-fighting with the flat sea plane beneath
+  // it.
+  const foam = new THREE.Mesh(
+    buildIslandFoamGeometry(tre.id, geometry.wallRadius),
+    new THREE.MeshStandardMaterial({
+      color: theme.untrusted.foam,
+      roughness: 0.85,
+      transparent: true,
+      opacity: 0.8,
+    }),
+  );
+  foam.position.set(geometry.center.x, SEA_LEVEL_Y + 0.05, geometry.center.z);
+  foam.userData.kind = "ISLAND_FOAM";
+  foam.userData.treId = tre.id;
+  group.add(foam);
 
   const land = new THREE.Mesh(
     buildIslandLandGeometry(tre.id, geometry.wallRadius),
