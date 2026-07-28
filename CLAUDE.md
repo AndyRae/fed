@@ -66,7 +66,13 @@ it is a different sea, not new bridges in this one.
 ## Architecture
 
 Static browser bundle with five layers, mirroring the discipline that worked
-for PGSimCity:
+for [PGSimCity](https://github.com/NikolayS/PGSimCity), an explorable 3D
+city that teaches how PostgreSQL works — the sibling project this one's
+whole approach (dual-register narration, tours-as-data, honesty rules,
+worktree isolation, the five-layer split below) is modelled on. When a
+task references "how PGSimCity did X" — camera feel, UI chrome, a specific
+pattern — go read its actual source at that URL rather than guessing from
+memory; it is a real, separate codebase, not a shared module.
 
 ```
 src/
