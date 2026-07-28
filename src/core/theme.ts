@@ -13,8 +13,11 @@ export const theme = {
     wall: 0x2d7a52,
     ferry: 0x57c98f,
     workshop: 0x8fe0b8,
-    /** The on-island workflow route: an informational line only, connecting Gate 1, the workshop, and this island's own Gate 2 — never anything that itself moves or decides. Deliberately saturated enough to read against the island green. */
-    workflow: 0x7c4fae,
+    /** The on-island workflow route: an informational path only, connecting Gate 1, the workshop, and this island's own Gate 2 — never anything that itself moves or decides. Rendered as a physical dirt road (see routes.ts), so this is an earthy tone rather than the glowing colour the ferry/egress tracks use — that contrast is deliberate: this is the one route nothing ever rides. */
+    workflow: 0xa5744a,
+    /** Secondary shades within the trust role, for terrain decoration only — not new semantic roles, same precedent as untrusted.mainlandAccent below. islandDirt tints the same scattered dirt patches and exposed ground as the road; islandBeach is the sandy coastal ring around every island. */
+    islandDirt: 0x8a6b45,
+    islandBeach: 0xe3c988,
   },
   /** Everything between trust zones: the sea and the mainland submission layer. */
   untrusted: {

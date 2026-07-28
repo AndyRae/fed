@@ -1,5 +1,6 @@
 import "./ui/styles.css";
 
+import type * as THREE from "three";
 import { explanationForKind } from "./core/explanations.ts";
 import type { SimState, TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
@@ -7,6 +8,7 @@ import { createFlowController, type FlowController } from "./engine/flowControll
 import { createLabels } from "./engine/labels.ts";
 import { createPicker } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
+import { createSeaAnimator } from "./engine/seaAnimator.ts";
 import { createRng } from "./sim/rng.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
@@ -25,11 +27,13 @@ if (!container) {
   throw new Error("#app root element is missing");
 }
 
-const DEMO_TRES = [
-  { id: "tre-a", name: "Isle of Ailsa" },
-  { id: "tre-b", name: "Isle of Kessel" },
-  { id: "tre-c", name: "Isle of Muck" },
-];
+// Down to one island for now, to keep the on-island layout and execution
+// cycle legible while that's reworked. Back up to three once the single-
+// island geometry and choreography read clearly — see CLAUDE.md's world
+// metaphor table; adding islands back is just growing this list, since
+// buildWorld/computeIslandGeometries/the flow controller are all already
+// generic over an arbitrary TRE count.
+const DEMO_TRES = [{ id: "tre-a", name: "Isle of Ailsa" }];
 
 const STUDY_NAMES = [
   "Cardiovascular Risk Study",
@@ -48,7 +52,7 @@ const RESEARCHERS = [
   "Dr. Kwame Mensah",
 ];
 
-let currentState = createInitialSimState({ seed: 1, tres: DEMO_TRES, pollIntervalTicks: 3 });
+let currentState = createInitialSimState({ seed: 1, tres: DEMO_TRES, pollIntervalTicks: 2 });
 
 const engine = createEngine(container);
 const cameraRig = createCameraRig(engine);
@@ -59,6 +63,15 @@ cameraRig.setPose({
 
 const worldGroup = buildWorld(currentState);
 engine.scene.add(worldGroup);
+
+// Ambient decorative motion, entirely independent of SimState and of
+// whether a tour or free-roam owns the camera right now — see CLAUDE.md
+// "Visual language": it never pauses/swaps the way flowController does.
+let seaMesh: THREE.Mesh | undefined;
+worldGroup.traverse((object) => {
+  if (object.userData.kind === "SEA") seaMesh = object as THREE.Mesh;
+});
+if (seaMesh) createSeaAnimator(engine, seaMesh);
 
 // Shared by the ambient demo's flow controller and every tour's camera
 // resolver, so a TRE's rendered position always matches whichever one is
@@ -151,9 +164,13 @@ function scheduleNewOutputReviews(): void {
   for (const crate of currentState.crates) {
     if (crate.status !== "HELD" || scheduledForReview.has(crate.id)) continue;
     scheduledForReview.add(crate.id);
+    // Long enough that the crate has already visibly arrived and parked at
+    // this island's own customs hall (the flow controller's hold leg is
+    // well under a second) before "a human" decides — honesty rule 3, the
+    // queue must visibly hold, not just skip straight to the outcome.
     setTimeout(() => {
       currentState = decideOutputReview(currentState, { crateId: crate.id, decision: "RELEASED" });
-    }, 2000);
+    }, 1600);
   }
 }
 
@@ -165,7 +182,7 @@ function pickFrom<T>(items: readonly T[]): T {
   return items[Math.floor(demoRng() * items.length)]!;
 }
 
-const MAX_DEMO_PROJECTS = 60;
+const MAX_DEMO_PROJECTS = 110;
 let projectCounter = 0;
 
 /**
@@ -185,11 +202,11 @@ function spawnDemoProject(): void {
   });
   DEMO_TRES.forEach((tre, index) => {
     currentState = submitTask(currentState, { id: `task-${id}-${tre.id}`, projectId: id, treId: tre.id });
-    scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, 1200 + index * 1200);
+    scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, 700 + index * 700);
   });
 }
 spawnDemoProject();
-window.setInterval(spawnDemoProject, 4500);
+window.setInterval(spawnDemoProject, 2400);
 
 let ambientTimer: number | null = null;
 function resumeAmbientDemo(): void {
@@ -197,7 +214,7 @@ function resumeAmbientDemo(): void {
   ambientTimer = window.setInterval(() => {
     currentState = tick(currentState, 1);
     scheduleNewOutputReviews();
-  }, 400);
+  }, 260);
 }
 function pauseAmbientDemo(): void {
   if (ambientTimer == null) return;

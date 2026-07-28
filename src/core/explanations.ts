@@ -18,12 +18,14 @@ export const ENTITY_KINDS = [
   "MAINLAND_DOCK",
   "MAINLAND_BUILDING",
   "ISLAND_LAND",
+  "ISLAND_BEACH",
   "ISLAND_WALL",
   "VAULT",
   "WORKSHOP",
   "GATE1_HARBOURMASTER",
   "DOCK",
   "FERRY",
+  "CONTAINER",
   "CRATE",
   "CUSTOMS_HALL",
   "GATE2_INSPECTOR",
@@ -64,6 +66,12 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     detail:
       "A TRE: a separate trust zone with a hard perimeter. Nothing crosses its wall inward except its own ferry, departing and returning.",
   },
+  ISLAND_BEACH: {
+    title: "The shoreline",
+    plain: "The sandy edge between this island's grass and the open water — scenery, not a separate step in the protocol.",
+    detail:
+      "No distinct protocol role, like ISLAND_LAND and ISLAND_WALL. Marks the coastline so the island reads as a real place with an edge, not a flat disc dropped onto the sea.",
+  },
   ISLAND_WALL: {
     title: "The island wall",
     plain: "The boundary of this TRE. Only this island's own ferry may ever cross it, and only by leaving and returning.",
@@ -99,6 +107,12 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     plain: "This island's own vessel. It is the only thing that ever touches this island from outside.",
     detail:
       "The TRE agent. Polls the submission layer on a scaled interval and collects only tasks belonging to a project this specific island has already approved.",
+  },
+  CONTAINER: {
+    title: "The researcher's container",
+    plain: "The actual piece of work, now inside the wall and on its way from the ferry's dock to the workshop that will run it.",
+    detail:
+      "The GA4GH TES task's container, travelling on from where the island's own ferry left it. This leg is entirely inside the wall — the wall-crossing fetch already happened as the ferry's own round trip; this is only the container's onward trip to the workshop that executes it.",
   },
   CRATE: {
     title: "A sealed crate",

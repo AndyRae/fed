@@ -9,6 +9,8 @@ function semanticColorEntries(): [string, number][] {
     ["trust.ferry", theme.trust.ferry],
     ["trust.workshop", theme.trust.workshop],
     ["trust.workflow", theme.trust.workflow],
+    ["trust.islandDirt", theme.trust.islandDirt],
+    ["trust.islandBeach", theme.trust.islandBeach],
     ["untrusted.sea", theme.untrusted.sea],
     ["untrusted.mainland", theme.untrusted.mainland],
     ["untrusted.mainlandAccent", theme.untrusted.mainlandAccent],

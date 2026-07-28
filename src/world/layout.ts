@@ -131,7 +131,13 @@ function vecLerp(a: Vec3, b: Vec3, t: number): Vec3 {
 }
 
 export const SEA_LEVEL_Y = 0;
-export const ISLAND_WALL_RADIUS = 9;
+// A touch bigger than the original 9 — more room for each island's
+// elements to breathe — while staying safely under the ~11.1 ceiling a
+// 3-island layout needs to keep adjacent walls from overlapping (see
+// layout.test.ts "never overlaps another island's wall": at
+// ISLAND_RING_RADIUS 24 with a 110° spread across 3 islands, adjacent
+// centres sit ~22.16 apart, so 2 × wallRadius must stay under that).
+export const ISLAND_WALL_RADIUS = 10;
 export const ISLAND_RING_RADIUS = 24;
 
 export interface MainlandGeometry {
@@ -177,20 +183,35 @@ export function islandGeometry(treId: TreId, index: number, total: number): Isla
 
   const towardMainland = vecNormalize(vecSub(mainlandGeometry.center, center));
   const sideways: Vec3 = { x: -towardMainland.z, y: 0, z: towardMainland.x };
-  // Blended with a lateral offset so it lands on a different point of the
-  // wall than the ferry's dock, while still generally facing the mainland
-  // side, since an approved crate ends up travelling that way too.
-  const towardCustomsHall = vecNormalize(vecAdd(towardMainland, vecScale(sideways, 0.6)));
+  const awayFromMainland = vecScale(towardMainland, -1);
+
+  // Both wall-anchored gates sit on the mainland-facing half, at different
+  // points of the wall so a straight-line sea route from either one never
+  // clips back across the island's own landmass.
   const dock = vecAdd(center, vecScale(towardMainland, ISLAND_WALL_RADIUS));
+  const towardCustomsHall = vecNormalize(vecAdd(towardMainland, vecScale(sideways, 0.6)));
   const customsHall = vecAdd(center, vecScale(towardCustomsHall, ISLAND_WALL_RADIUS));
-  const workshop = vecAdd(
-    center,
-    vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.3), vecScale(sideways, ISLAND_WALL_RADIUS * 0.35)),
-  );
-  const harbourmasterOffice = vecAdd(
-    center,
-    vecAdd(vecScale(towardMainland, ISLAND_WALL_RADIUS * 0.6), vecScale(sideways, -ISLAND_WALL_RADIUS * 0.3)),
-  );
+
+  // The harbourmaster's office sits inland from the dock, on the wall's
+  // opposite lateral side from the customs hall — the first governance stop
+  // a task's paperwork reaches, close to where the ferry itself departs.
+  // Kept well under the island land silhouette's minimum radius (0.62 ×
+  // wallRadius, see buildIslandLandGeometry) so it never floats past the
+  // coastline into the moat, whichever way this island's irregular shape
+  // happens to randomise.
+  const towardHarbourmaster = vecNormalize(vecAdd(vecScale(towardMainland, 0.75), vecScale(sideways, -0.6)));
+  const harbourmasterOffice = vecAdd(center, vecScale(towardHarbourmaster, ISLAND_WALL_RADIUS * 0.45));
+
+  // The workshop sits on the far side of the island, away from the
+  // mainland-facing gates and loosely circling the vault rather than
+  // crowding next to it — it is the one landmark with no route leaving the
+  // wall, so it is free to use the half of the island the two gates don't
+  // touch. This makes the on-island workflow (harbourmaster -> workshop ->
+  // customs hall) sweep across the whole footprint instead of sitting in
+  // one corner, which is the point: it should read as a real cycle, not a
+  // cluster.
+  const towardWorkshop = vecNormalize(vecAdd(awayFromMainland, vecScale(sideways, 0.25)));
+  const workshop = vecAdd(center, vecScale(towardWorkshop, ISLAND_WALL_RADIUS * 0.5));
 
   return { treId, center, wallRadius: ISLAND_WALL_RADIUS, dock, customsHall, vault: center, workshop, harbourmasterOffice };
 }

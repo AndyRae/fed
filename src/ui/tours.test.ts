@@ -40,7 +40,7 @@ describe("the journey of a task (flagship tour)", () => {
     expect(getCrateForTask(finalStop.state, "task-1")?.status).toBe("RELEASED");
   });
 
-  it("aggregates the released crate at the researcher's quay, by project, across TREs", () => {
+  it("aggregates the released crate at the researcher's quay, by project", () => {
     const run = playTour(journeyOfATaskTour);
     const released = releasedCratesForProject(run.finalState, "proj-diabetes-cohort");
     expect(released).toHaveLength(1);

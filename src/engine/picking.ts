@@ -48,22 +48,19 @@ export interface PickerHandle {
 }
 
 /**
- * A mesh gets an EdgesGeometry wireframe of its exact silhouette. A route
- * line (see src/world/routes.ts) has no "edges" in that sense, so it gets a
- * brighter duplicate of the same path instead — either way the highlight
- * owns its own geometry (cloned or freshly built), never a shared
- * reference, so disposing it later can never affect the original object.
+ * Every pickable object in this world — including route tracks, see
+ * src/world/routes.ts — is a real Mesh, so a bright EdgesGeometry duplicate
+ * of its silhouette is enough; the highlight owns its own geometry (cloned
+ * from EdgesGeometry, never a shared reference), so disposing it later can
+ * never affect the original object.
  */
-function buildWireframe(object: THREE.Object3D, opacity: number): THREE.Line | null {
-  let highlight: THREE.Line | null = null;
+function buildWireframe(object: THREE.Object3D, opacity: number): THREE.LineSegments | null {
+  let highlight: THREE.LineSegments | null = null;
   if (object instanceof THREE.Mesh && object.geometry) {
     const edges = new THREE.EdgesGeometry(object.geometry, 25);
     const material = new THREE.LineBasicMaterial({ color: HIGHLIGHT_COLOR, transparent: true, opacity, depthTest: false });
     highlight = new THREE.LineSegments(edges, material);
     highlight.scale.multiplyScalar(HIGHLIGHT_SCALE);
-  } else if (object instanceof THREE.Line && object.geometry) {
-    const material = new THREE.LineBasicMaterial({ color: HIGHLIGHT_COLOR, transparent: true, opacity, depthTest: false, linewidth: 3 });
-    highlight = new THREE.Line(object.geometry.clone(), material);
   }
   if (!highlight) return null;
 
@@ -90,16 +87,12 @@ function buildWireframe(object: THREE.Object3D, opacity: number): THREE.Line | n
 export function createPicker(options: PickerOptions): PickerHandle {
   const { engine, root } = options;
   const raycaster = new THREE.Raycaster();
-  // Route lines (src/world/routes.ts) are zero-width polylines — the
-  // default line-picking threshold is too tight to click reliably at this
-  // world's camera distances, so widen it well beyond a mesh's own bounds.
-  raycaster.params.Line = { threshold: 2.5 };
   const pointerNdc = new THREE.Vector2();
   const highlightGroup = new THREE.Group();
   engine.scene.add(highlightGroup);
 
-  let hoverWireframe: THREE.Line | null = null;
-  let selectWireframe: THREE.Line | null = null;
+  let hoverWireframe: THREE.LineSegments | null = null;
+  let selectWireframe: THREE.LineSegments | null = null;
   let hovered: THREE.Object3D | null = null;
   let selected: THREE.Object3D | null = null;
   let lastHoverCheck = 0;

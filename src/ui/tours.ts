@@ -2,24 +2,24 @@ import { createInitialSimState } from "../sim/sim.ts";
 import type { Tour } from "./tourTypes.ts";
 
 const TRE_A = { id: "tre-a", name: "Isle of Ailsa" };
-const TRE_B = { id: "tre-b", name: "Isle of Kessel" };
 
 /**
  * The flagship tour: submit → Gate 1 approval → ferry collects → workshop
  * executes → sealed crate → Gate 2 review → release → aggregation at the
  * quay. See CLAUDE.md "Tour mechanism" > "Launch tours" #1.
  *
- * The world has two TREs (Trusted Research Environments). The tour's
- * directives only drive Isle of Ailsa's task — Isle of Kessel's
- * harbourmaster and ferry would run the identical protocol for their own
- * copy of the project, completely independently; that parallel run is a
- * free-roam/rendering concern, not this headless model's job to animate.
+ * The demo world currently renders one TRE (Trusted Research Environment)
+ * while its on-island layout and choreography are being reworked for
+ * clarity — see main.ts's DEMO_TRES. In the full model a project can target
+ * several islands at once, each running the identical protocol completely
+ * independently (honesty rule 6: islands are mutually invisible); this tour
+ * targets just the one island so what it submits always has somewhere to
+ * render.
  */
 export const journeyOfATaskTour: Tour = {
   id: "journey-of-a-task",
   title: "The journey of a task",
-  createInitialState: () =>
-    createInitialSimState({ seed: 1, tres: [TRE_A, TRE_B], pollIntervalTicks: 2 }),
+  createInitialState: () => createInitialSimState({ seed: 1, tres: [TRE_A], pollIntervalTicks: 2 }),
   stops: [
     {
       id: "submit-project",
@@ -27,10 +27,9 @@ export const journeyOfATaskTour: Tour = {
       cameraPose: { kind: "mainland" },
       focusEntity: { kind: "project", projectId: "proj-diabetes-cohort" },
       narration: {
-        plain:
-          "A researcher submits a project proposal to two island TREs (Trusted Research Environments) at once, from the quay.",
+        plain: "A researcher submits a project proposal to an island TRE (Trusted Research Environment), from the quay.",
         detail:
-          "submitProject creates a Project and a PENDING ProjectApproval per targeted TRE. Each approval is Gate 1, decided independently by that island's harbourmaster — approving here says nothing about approval anywhere else.",
+          "submitProject creates a Project and a PENDING ProjectApproval per targeted TRE. Each approval is Gate 1, decided independently by that island's harbourmaster — approving here says nothing about approval anywhere else, on any other island that might later target the same project.",
       },
       simDirective: {
         kind: "submitProject",
@@ -38,7 +37,7 @@ export const journeyOfATaskTour: Tour = {
           id: "proj-diabetes-cohort",
           name: "Diabetes Cohort Study",
           researcher: "Dr. Amara Osei",
-          targetTreIds: ["tre-a", "tre-b"],
+          targetTreIds: ["tre-a"],
         },
       },
     },
@@ -150,7 +149,7 @@ export const journeyOfATaskTour: Tour = {
         plain:
           "Back at the researcher's quay, released results are gathered together with results from every other island that approved the project.",
         detail:
-          "releasedCratesForProject reads across every TRE's released crates for this project — the one point in the model that looks across islands, and only over crates that already cleared that island's own Gate 2.",
+          "releasedCratesForProject reads across every TRE's released crates for this project. With more than one island targeted, this is the one point in the model that looks across islands, and only over crates that already cleared that island's own Gate 2.",
       },
       simDirective: { kind: "none" },
     },

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { decideProjectApproval, createInitialSimState, submitProject, submitTask, tick } from "../sim/sim.ts";
+import { decideOutputReview, decideProjectApproval, createInitialSimState, submitProject, submitTask, tick } from "../sim/sim.ts";
 import { getCrateForTask } from "../sim/selectors.ts";
 import { computeIslandGeometries } from "../world/world.ts";
 import { createFlowController, type FlowSceneHost } from "./flowController.ts";
@@ -100,7 +100,7 @@ describe("createFlowController", () => {
     expect(ferryA.position.z).toBeCloseTo(dockA.z, 5);
   });
 
-  it("spawns a crate at the workshop on CRATE_SEALED, routes it through this island's own customs hall to the quay, then removes it", () => {
+  it("spawns a crate at the workshop on CRATE_SEALED, holds it at this island's own customs hall until Gate 2 decides, then releases it to the quay", () => {
     const { host, frame } = createFakeHost();
     const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
     let state = twoIslandWorldWithCollectedTask();
@@ -122,8 +122,79 @@ describe("createFlowController", () => {
     frame(0.01);
     expect(countCrates()).toBe(1);
 
-    for (let i = 0; i < 40; i++) frame(0.1);
+    // The hold leg (workshop -> this island's own customs hall) finishes
+    // well before any decision — honesty rule 3: the crate must still be
+    // there, visibly waiting on a human.
+    for (let i = 0; i < 15; i++) frame(0.1);
+    expect(countCrates()).toBe(1);
+
+    state = decideOutputReview(state, { crateId: crate!.id, decision: "RELEASED" });
+    for (let i = 0; i < 25; i++) frame(0.1);
     expect(countCrates()).toBe(0);
+  });
+
+  it("leaves a REFUSED crate parked at this island's own customs hall — retained, not deleted", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = twoIslandWorldWithCollectedTask();
+    state = tick(state, 4);
+    const crate = getCrateForTask(state, "t1");
+    expect(crate).toBeDefined();
+
+    createFlowController(host, islands, () => state);
+
+    function countCrates(): number {
+      let n = 0;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "CRATE") n++;
+      });
+      return n;
+    }
+
+    for (let i = 0; i < 15; i++) frame(0.1);
+    expect(countCrates()).toBe(1);
+
+    state = decideOutputReview(state, { crateId: crate!.id, decision: "REFUSED" });
+    for (let i = 0; i < 40; i++) frame(0.1);
+    expect(countCrates()).toBe(1);
+  });
+
+  it("carries the collected container from the dock to the workshop once the ferry that fetched it is back home", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ]);
+    const state = twoIslandWorldWithCollectedTask();
+    createFlowController(host, islands, () => state);
+
+    function findContainer(): THREE.Object3D | undefined {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "CONTAINER") found = o;
+      });
+      return found;
+    }
+
+    // While the ferry is still mid-trip, no container has appeared yet —
+    // the container is what the ferry brought back, not something that
+    // travels alongside it.
+    frame(0.1);
+    expect(findContainer()).toBeUndefined();
+
+    // Let the ferry's whole round trip finish in one jump — a newly spawned
+    // tween is never advanced within the same onBeforeRender call that
+    // created it (see pushTween's doc comment), so the container appears
+    // here still sitting at the dock, not partway to the workshop already.
+    frame(2.5);
+    const container = findContainer();
+    expect(container).toBeDefined();
+    const dock = islands.get("tre-a")!.dock;
+    expect(Math.hypot(container!.position.x - dock.x, container!.position.z - dock.z)).toBeLessThan(2);
+
+    // Let the container's own trip finish: it reaches the workshop and is removed.
+    for (let i = 0; i < 15; i++) frame(0.1);
+    expect(findContainer()).toBeUndefined();
   });
 
   it("dispose removes ferries from the scene and stops updating on further frames", () => {
@@ -143,6 +214,131 @@ describe("createFlowController", () => {
     expect(ferries).toBe(0);
 
     frame(1); // no-op: unsubscribed
+  });
+
+  it("dispose also removes a REFUSED crate parked at the customs hall, not just active tweens", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = twoIslandWorldWithCollectedTask();
+    state = tick(state, 4);
+    const crate = getCrateForTask(state, "t1");
+    expect(crate).toBeDefined();
+
+    const controller = createFlowController(host, islands, () => state);
+    for (let i = 0; i < 15; i++) frame(0.1);
+    state = decideOutputReview(state, { crateId: crate!.id, decision: "REFUSED" });
+    frame(0.1);
+
+    controller.dispose();
+
+    let crates = 0;
+    host.scene.traverse((o) => {
+      if (o.userData.kind === "CRATE") crates++;
+    });
+    expect(crates).toBe(0);
+  });
+});
+
+/** Every currently-visible flat ring in the scene — decision pulses and, while a task runs, the vault/workshop compute glow, none of which carry a `userData.kind`. */
+function visibleRingCount(scene: THREE.Scene): number {
+  let n = 0;
+  scene.traverse((o) => {
+    if (o instanceof THREE.Mesh && o.geometry instanceof THREE.RingGeometry && o.visible) n++;
+  });
+  return n;
+}
+
+describe("gate decision pulses", () => {
+  it("spawns a brief ring at the harbourmaster's office when Gate 1 approves, which fades away on its own", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    createFlowController(host, islands, () => state);
+
+    frame(0.01);
+    expect(visibleRingCount(host.scene)).toBe(0);
+
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    frame(0.01);
+    expect(visibleRingCount(host.scene)).toBe(1);
+
+    for (let i = 0; i < 15; i++) frame(0.1);
+    expect(visibleRingCount(host.scene)).toBe(0);
+  });
+
+  it("also pulses when Gate 1 refuses — refusal is a first-class, visible event too", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    createFlowController(host, islands, () => state);
+
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "REFUSED", decidedBy: "H" });
+    frame(0.01);
+    expect(visibleRingCount(host.scene)).toBe(1);
+  });
+
+  it("pulses at this island's own customs hall on a Gate 2 decision, released or refused alike", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = twoIslandWorldWithCollectedTask();
+    state = tick(state, 4);
+    const crate = getCrateForTask(state, "t1");
+    expect(crate).toBeDefined();
+    createFlowController(host, islands, () => state);
+
+    for (let i = 0; i < 15; i++) frame(0.1); // let the hold leg settle first
+    expect(visibleRingCount(host.scene)).toBe(0);
+
+    state = decideOutputReview(state, { crateId: crate!.id, decision: "REFUSED" });
+    frame(0.01);
+    expect(visibleRingCount(host.scene)).toBe(1);
+  });
+});
+
+describe("the vault/workshop compute glow", () => {
+  it("glows at both the vault and the workshop while a task is RUNNING, and stops once it isn't", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = twoIslandWorldWithCollectedTask(); // task is QUEUED
+
+    createFlowController(host, islands, () => state);
+    // Let the Gate 1 decision pulse from setup (replayed on construction,
+    // since it already happened before the controller existed) finish
+    // fading before establishing the baseline.
+    for (let i = 0; i < 15; i++) frame(0.1);
+    expect(visibleRingCount(host.scene)).toBe(0);
+
+    state = tick(state, 2); // QUEUED -> INITIALIZING -> RUNNING
+    frame(0.01);
+    expect(visibleRingCount(host.scene)).toBe(2); // vault + workshop
+
+    state = tick(state, 1); // RUNNING -> COMPLETE
+    frame(0.01);
+    expect(visibleRingCount(host.scene)).toBe(0);
+  });
+
+  it("never places anything at the vault other than the vault's own fixed position — no route, no travelling mesh", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = twoIslandWorldWithCollectedTask();
+    state = tick(state, 2); // -> RUNNING
+
+    createFlowController(host, islands, () => state);
+    for (let i = 0; i < 20; i++) frame(0.1);
+
+    const vault = islands.get("tre-a")!.vault;
+    let glowingAtVault = 0;
+    host.scene.traverse((o) => {
+      if (!(o instanceof THREE.Mesh) || !(o.geometry instanceof THREE.RingGeometry) || !o.visible) return;
+      const dx = o.position.x - vault.x;
+      const dz = o.position.z - vault.z;
+      if (Math.hypot(dx, dz) < 0.5) glowingAtVault++;
+    });
+    // Exactly the stationary vault glow ring — nothing else is ever near
+    // the vault's (x, z), since nothing ever travels there.
+    expect(glowingAtVault).toBe(1);
   });
 });
 
@@ -267,7 +463,7 @@ describe("an island's ferry departing again before its previous trip finished", 
     })();
     const dock = islands.get("tre-a")!.dock;
 
-    // First tween well under way (elapsed 0.5s of a 3s trip — noticeably off the dock).
+    // First tween well under way (elapsed 0.5s of a 2.2s trip — noticeably off the dock).
     frame(0.5);
 
     // A second departure fires on the same island while the first is still
@@ -276,7 +472,7 @@ describe("an island's ferry departing again before its previous trip finished", 
     current = tick(current, 1); // t2 collected
     frame(0.01);
 
-    // If the fix is working, only the brand-new tween (elapsed 0.01s of 3s)
+    // If the fix is working, only the brand-new tween (elapsed 0.01s of 2.2s)
     // is driving the mesh, so it has barely left the dock. If the old,
     // further-along tween (elapsed 0.51s) were still also writing this
     // mesh's position every frame, it would be several units further out
