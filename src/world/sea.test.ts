@@ -20,12 +20,25 @@ describe("buildSea", () => {
     expect(sea.userData.kind).toBe("SEA");
   });
 
-  it("is a flat plane — every vertex sits at the same height", () => {
+  it("bakes a gentle, permanent swell rather than a perfectly flat plane", () => {
     const sea = buildSea() as THREE.Mesh;
     const position = sea.geometry.getAttribute("position");
+    let anyDisplaced = false;
+    let maxAbs = 0;
     for (let i = 0; i < position.count; i++) {
-      expect(position.getZ(i)).toBe(0);
+      const z = position.getZ(i);
+      if (z !== 0) anyDisplaced = true;
+      maxAbs = Math.max(maxAbs, Math.abs(z));
     }
+    expect(anyDisplaced).toBe(true);
+    // Gentle and subordinate — see CLAUDE.md "Visual language": decorative
+    // motion (and, by the same logic, decorative shape) must not dominate.
+    expect(maxAbs).toBeLessThan(1);
+  });
+
+  it("recomputes normals so the swell actually catches light", () => {
+    const sea = buildSea() as THREE.Mesh;
+    expect(sea.geometry.getAttribute("normal")).toBeDefined();
   });
 
   it("is a soft matte surface, not a reflective one", () => {
