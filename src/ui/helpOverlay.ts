@@ -56,6 +56,7 @@ const SECTIONS: readonly ControlSection[] = [
     rows: [
       { keys: ["Esc"], description: "Close the inspector, a tour, or this panel" },
       { keys: ["?"], description: "Toggle this panel" },
+      { keys: ["🌙"], description: "Toggle night mode — purely visual, changes nothing about the simulation" },
     ],
   },
 ];
