@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { theme } from "../core/theme.ts";
 import { mainlandGeometry } from "./layout.ts";
-import { buildMainland } from "./mainland.ts";
+import { buildMainland, MAINLAND_SAFE_INTERIOR_RADIUS } from "./mainland.ts";
 
 function findByKind(root: THREE.Object3D, kind: string): THREE.Object3D | undefined {
   let found: THREE.Object3D | undefined;
@@ -157,5 +157,43 @@ describe("buildMainland", () => {
       expect(buildingA.position.x).toBeCloseTo(b[i]!.position.x, 5);
       expect(buildingA.position.z).toBeCloseTo(b[i]!.position.z, 5);
     });
+  });
+
+  it("keeps every researcher-quarter building safely inside the mainland's own coastline, regardless of its irregular random shape", () => {
+    const mainland = buildMainland();
+    mainland.updateMatrixWorld(true);
+    const buildings = [
+      findByKind(mainland, "RESEARCHER_QUARTER") as THREE.Mesh,
+      ...(findAllByKind(mainland, "MAINLAND_BUILDING") as THREE.Mesh[]),
+    ];
+    expect(buildings.length).toBeGreaterThan(1);
+    for (const building of buildings) {
+      building.geometry.computeBoundingSphere();
+      const worldPos = new THREE.Vector3();
+      building.getWorldPosition(worldPos);
+      const reach =
+        Math.hypot(worldPos.x - mainlandGeometry.center.x, worldPos.z - mainlandGeometry.center.z) +
+        building.geometry.boundingSphere!.radius;
+      expect(reach, `${building.userData.kind} at (${worldPos.x.toFixed(1)}, ${worldPos.z.toFixed(1)})`).toBeLessThan(
+        MAINLAND_SAFE_INTERIOR_RADIUS,
+      );
+    }
+  });
+
+  it("keeps the plaza safely inside the mainland's own coastline too", () => {
+    const mainland = buildMainland();
+    mainland.updateMatrixWorld(true);
+    let plaza: THREE.Mesh | undefined;
+    mainland.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.geometry instanceof THREE.CylinderGeometry && obj.geometry.parameters.radiusTop > 5) {
+        plaza = obj;
+      }
+    });
+    const worldPos = new THREE.Vector3();
+    plaza!.getWorldPosition(worldPos);
+    const reach =
+      Math.hypot(worldPos.x - mainlandGeometry.center.x, worldPos.z - mainlandGeometry.center.z) +
+      (plaza!.geometry as THREE.CylinderGeometry).parameters.radiusTop;
+    expect(reach).toBeLessThan(MAINLAND_SAFE_INTERIOR_RADIUS);
   });
 });

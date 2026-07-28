@@ -19,6 +19,21 @@ const LAND_BEVEL_THICKNESS = 0.4;
 export const MAINLAND_GROUND_HEIGHT = MAINLAND_HEIGHT + LAND_BEVEL_THICKNESS;
 const MAINLAND_SEED = 4200;
 
+/**
+ * The largest radius any decoration may extend from the mainland's own
+ * centre and be guaranteed to stay on solid ground, whatever the random
+ * coastline's exact shape turns out to be. `0.82` is the hard minimum
+ * multiplier buildMainlandLandGeometry ever draws for one of its 12 sample
+ * points; two adjacent points at exactly that minimum, 30° apart, connect
+ * with a straight edge whose closest point to the centre is `cos(15°)`
+ * closer still — that's the true worst case, not just the sample points
+ * themselves. Exported so mainland.test.ts can hold every decoration to
+ * this bound directly, rather than the bound and the decorations' own
+ * radii silently drifting apart the way they did the first time (see the
+ * commit that added this constant).
+ */
+export const MAINLAND_SAFE_INTERIOR_RADIUS = MAINLAND_RADIUS * 0.82 * Math.cos(Math.PI / 12) - 0.5;
+
 /** An irregular coastline, gentler than an island's — a broad shore, not a jagged isle. */
 function buildMainlandLandGeometry(): THREE.BufferGeometry {
   const rng = createRng(MAINLAND_SEED);
@@ -42,8 +57,13 @@ function buildMainlandLandGeometry(): THREE.BufferGeometry {
   return geometry;
 }
 
-const QUARTER_RADIUS = 6.5;
-const PLAZA_RADIUS = 8.5;
+// Both radii, plus researcherQuarter's own distance from the mainland
+// centre (see layout.ts) and each building's own footprint, must stay
+// within MAINLAND_SAFE_INTERIOR_RADIUS — see mainland.test.ts's coastline
+// bound tests, which measure the actual built geometry rather than trust
+// these numbers by inspection.
+const QUARTER_RADIUS = 4;
+const PLAZA_RADIUS = 6;
 
 /**
  * A paved plaza under the researcher quarter — stone, not grass, so even
@@ -84,7 +104,7 @@ function buildPlaza(): THREE.Mesh {
 function buildResearcherQuarter(): THREE.Object3D {
   const group = new THREE.Group();
   const rng = createRng(MAINLAND_SEED + 1);
-  const buildingCount = 9;
+  const buildingCount = 7;
   const decorativeAccents = [theme.untrusted.mainlandAccent, theme.untrusted.mainlandAccent3];
 
   for (let i = 0; i < buildingCount; i++) {

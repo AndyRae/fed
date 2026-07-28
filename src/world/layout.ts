@@ -171,9 +171,15 @@ export const mainlandGeometry: MainlandGeometry = {
   // of the dock's own footprint (half-width 1.5) by only a small gap.
   quayOffice: { x: 2.5, y: SEA_LEVEL_Y, z: -24 },
   // On the inland side, away from the quay's own sea-facing edge, so the
-  // submission's trip to the dock reads as a real crossing of the mainland
-  // rather than a few units' shuffle.
-  researcherQuarter: { x: 6, y: SEA_LEVEL_Y, z: -40 },
+  // submission's trip to the dock reads as a real crossing of the
+  // mainland. Previously (6, -40) — 10 units from centre — which left no
+  // room for the researcher quarter's own plaza (radius up to 8.5) before
+  // hitting the mainland's actual coastline, which sits as close as ~13.4
+  // at this angle: the plaza and several buildings genuinely hung off the
+  // edge into the sea. See mainland.ts's MAINLAND_SAFE_INTERIOR_RADIUS —
+  // this point's own distance from centre, plus the researcher quarter's
+  // largest radius (the plaza), must stay under that bound.
+  researcherQuarter: { x: 3, y: SEA_LEVEL_Y, z: -35.5 },
 };
 
 export interface IslandGeometry {
