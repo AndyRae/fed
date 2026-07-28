@@ -42,6 +42,8 @@ alternatives per-feature, because the geography *is* the argument:
 | The sea | The untrusted network | Everything between trust zones is open water |
 | The mainland port | Submission layer | Public-facing; where researchers hand over work |
 | The researcher's quay | Researcher / submitter | Where tasks begin and approved results end |
+| The researcher quarter | Researchers and their institutions, collectively | Decorative and collective, not a new gate — where a submitted task's own trip to the quay visibly begins. "Researcher / submitter" in protocol terms is still the quay itself |
+| A researcher's submission | A submitted GA4GH TES task, before any TRE has agreed to it | Travels from the researcher quarter to the quay, entirely on the mainland; visually distinct from the container it becomes once an island's ferry has collected it |
 | An island | A TRE | A separate trust zone with a hard perimeter |
 | The island wall | The TRE network boundary | Nothing crosses it inward, ever |
 | The harbourmaster's office (per island) | TRE manager + project approval | Gate 1: a human decides whether this island works with this project at all |

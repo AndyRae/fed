@@ -1,17 +1,26 @@
 import * as THREE from "three";
 import { theme } from "../core/theme.ts";
 import type { CrateId, SimState, TreId } from "../core/types.ts";
-import { egressPath, ferryPath, type IslandGeometry, type Vec3 } from "../world/layout.ts";
+import { egressPath, ferryPath, type IslandGeometry, submissionPath, type Vec3 } from "../world/layout.ts";
 import { GROUND_HEIGHT } from "../world/island.ts";
+import { MAINLAND_GROUND_HEIGHT } from "../world/mainland.ts";
 import { pointAlongPath } from "../world/pathInterpolation.ts";
 
 const FERRY_TRIP_SECONDS = 2.2;
 const CONTAINER_TRIP_SECONDS = 0.9;
 const CRATE_HOLD_TRIP_SECONDS = 1.0;
 const CRATE_RELEASE_TRIP_SECONDS = 1.6;
+const SUBMISSION_TRIP_SECONDS = 1.1;
 const FERRY_HEIGHT = 0.6;
 const CONTAINER_HEIGHT = 0.55;
 const CRATE_HEIGHT = 0.6;
+// MAINLAND_GROUND_HEIGHT, not a small fixed offset — unlike the quay dock
+// (a separate, low jetty out at sea level, same as an island's own dock),
+// the researcher quarter sits on the mainland's own raised terrain
+// plateau, and this leg crosses that whole plateau, not just its edge. A
+// small offset here would spend most of the trip embedded in the ground —
+// the same bug class as DECISION_PULSE_HEIGHT below, just on the mainland.
+const SUBMISSION_HEIGHT = MAINLAND_GROUND_HEIGHT + 0.3;
 
 const DECISION_PULSE_SECONDS = 1.0;
 // GROUND_HEIGHT, not ISLAND_HEIGHT alone — see island.ts's own doc comment
@@ -104,6 +113,23 @@ function buildContainerMesh(treId: TreId): THREE.Object3D {
   return mesh;
 }
 
+/**
+ * A submitted task's own visual origin: the researcher quarter, travelling
+ * to the quay before any island has agreed to run anything. A pale
+ * "paperwork" tone, distinct from both the ferry's container (trust.ferry,
+ * only once something is inside a wall) and the crate it may eventually
+ * become (crate.body, only once a workshop has actually run it) — this
+ * hasn't crossed into TRE territory at all yet.
+ */
+function buildSubmissionMesh(): THREE.Object3D {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.12, 1.0),
+    new THREE.MeshStandardMaterial({ color: theme.untrusted.submission, roughness: 0.6 }),
+  );
+  mesh.userData.kind = "SUBMISSION";
+  return mesh;
+}
+
 function buildCrateMesh(treId: TreId): THREE.Object3D {
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(1, 0.8, 1),
@@ -131,9 +157,13 @@ function buildRingMesh(color: number, innerRadius: number, outerRadius: number):
 }
 
 /**
- * Animates ferries, containers, crates, and two kinds of stationary light —
- * in response to real SimState events, never driving protocol state itself
- * (src/sim owns that). Watches state.events for:
+ * Animates ferries, containers, crates, submissions, and two kinds of
+ * stationary light — in response to real SimState events, never driving
+ * protocol state itself (src/sim owns that). Watches state.events for:
+ *  - TASK_SUBMITTED: the researcher's own submission travels from the
+ *    researcher quarter to the quay, entirely on the mainland — before any
+ *    island has agreed to anything, so this never touches a wall or an
+ *    island at all.
  *  - TASK_COLLECTED: that island's ferry leaves its dock, travels to the
  *    mainland, and returns (honesty rule 1) — then the container it
  *    collected travels on, from the dock to the workshop, entirely inside
@@ -258,7 +288,21 @@ export function createFlowController(
   function handleNewEvents(state: SimState): void {
     for (let i = lastEventCount; i < state.events.length; i++) {
       const event = state.events[i]!;
-      if (event.type === "TASK_COLLECTED") {
+      if (event.type === "TASK_SUBMITTED") {
+        const path = submissionPath();
+        const origin = path[0]!;
+        const submission = buildSubmissionMesh();
+        submission.position.set(origin.x, origin.y + SUBMISSION_HEIGHT, origin.z);
+        host.scene.add(submission);
+        pushTween({
+          mesh: submission,
+          path,
+          duration: SUBMISSION_TRIP_SECONDS,
+          elapsed: 0,
+          heightOffset: SUBMISSION_HEIGHT,
+          onComplete: () => host.scene.remove(submission),
+        });
+      } else if (event.type === "TASK_COLLECTED") {
         const geometry = islands.get(event.treId);
         const ferry = ferryMeshes.get(event.treId);
         if (geometry && ferry) {

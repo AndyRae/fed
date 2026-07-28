@@ -9,6 +9,7 @@ import {
   islandGeometry,
   isLegalRoute,
   mainlandGeometry,
+  submissionPath,
   vaultZone,
   workflowPath,
   type Vec3,
@@ -247,6 +248,40 @@ describe("real geometry: workflowPath", () => {
     for (const island of islands) {
       for (const point of workflowPath(island)) {
         expect(distance(point, island.center)).toBeLessThanOrEqual(island.wallRadius + 1e-9);
+      }
+    }
+  });
+});
+
+describe("real geometry: mainlandGeometry.researcherQuarter", () => {
+  it("sits on the mainland, on the opposite side from the quay dock", () => {
+    const quarter = mainlandGeometry.researcherQuarter;
+    const center = mainlandGeometry.center;
+    const dock = mainlandGeometry.quayDock;
+    // The dock is offset from centre toward the sea; the quarter should be
+    // offset the other way — further from the dock than the centre is.
+    expect(distance(quarter, dock)).toBeGreaterThan(distance(center, dock));
+  });
+
+  it("is distinct from both the mainland centre and the quay dock", () => {
+    const quarter = mainlandGeometry.researcherQuarter;
+    expect(distance(quarter, mainlandGeometry.center)).toBeGreaterThan(0.5);
+    expect(distance(quarter, mainlandGeometry.quayDock)).toBeGreaterThan(0.5);
+  });
+});
+
+describe("real geometry: submissionPath", () => {
+  it("starts at the researcher quarter and ends at the quay dock", () => {
+    const path = submissionPath();
+    expect(path[0]).toEqual(mainlandGeometry.researcherQuarter);
+    expect(path[path.length - 1]).toEqual(mainlandGeometry.quayDock);
+  });
+
+  it("never touches an island — this leg is entirely on the mainland, before any TRE is involved", () => {
+    const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
+    for (const point of submissionPath()) {
+      for (const island of islands) {
+        expect(distance(point, island.center)).toBeGreaterThan(island.wallRadius);
       }
     }
   });

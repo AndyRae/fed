@@ -17,6 +17,7 @@ export const ENTITY_KINDS = [
   "MAINLAND_LAND",
   "MAINLAND_DOCK",
   "MAINLAND_BUILDING",
+  "RESEARCHER_QUARTER",
   "ISLAND_LAND",
   "ISLAND_BEACH",
   "ISLAND_WALL",
@@ -26,6 +27,7 @@ export const ENTITY_KINDS = [
   "DOCK",
   "FERRY",
   "CONTAINER",
+  "SUBMISSION",
   "CRATE",
   "CUSTOMS_HALL",
   "GATE2_INSPECTOR",
@@ -59,6 +61,12 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "A quay building",
     plain: "Part of the mainland's submission layer — scenery, not a separate step in the protocol.",
     detail: "No distinct protocol role. Groups the quay visually so the mainland reads as a place, not an empty disc.",
+  },
+  RESEARCHER_QUARTER: {
+    title: "The researcher quarter",
+    plain: "Where researchers and their institutions are, collectively — every submitted task's own journey to the quay starts here.",
+    detail:
+      "Decorative and collective, like the quay buildings around it — not a new gate. \"Researcher / submitter\" in CLAUDE.md's world-metaphor table is still centred on the quay itself, where tasks begin and results end in protocol terms; this is only where the submission animation visually originates. SimState has no notion of which building a task came from — see SIMPLIFICATIONS.md.",
   },
   ISLAND_LAND: {
     title: "An island",
@@ -113,6 +121,12 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     plain: "The actual piece of work, now inside the wall and on its way from the ferry's dock to the workshop that will run it.",
     detail:
       "The GA4GH TES task's container, travelling on from where the island's own ferry left it. This leg is entirely inside the wall — the wall-crossing fetch already happened as the ferry's own round trip; this is only the container's onward trip to the workshop that executes it.",
+  },
+  SUBMISSION: {
+    title: "A researcher's submission",
+    plain: "The actual piece of work, on its way from the researcher quarter to the quay — before any island has agreed to run it.",
+    detail:
+      "Rendered on TASK_SUBMITTED, entirely on the mainland: no wall, no island, no TRE is involved yet. Distinct in colour from both the container it becomes once an island's ferry has collected it (trust.ferry) and the crate it may become once a workshop has actually run it (crate.body) — this hasn't been agreed to by anyone yet.",
   },
   CRATE: {
     title: "A sealed crate",

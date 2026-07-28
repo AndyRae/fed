@@ -23,8 +23,16 @@ export const theme = {
   untrusted: {
     sea: 0x3aa0d8,
     mainland: 0xc9b389,
-    /** A secondary shade within the same untrusted role, for quay structures — not a new semantic role. */
+    /** Secondary shades within the same untrusted role, for building variety in the researcher quarter — not new semantic roles, same precedent as trust.islandDirt/islandBeach. Three distinct accents so the quarter reads as a real mixed skyline, not one colour repeated. */
     mainlandAccent: 0x9c8a63,
+    mainlandAccent2: 0xc06b4a,
+    mainlandAccent3: 0x7d8a94,
+    /** Rooftops across the researcher quarter — one more secondary shade, distinct from every wall colour so roof and building silhouettes read apart from a distance. */
+    roof: 0x5c4a3d,
+    /** The paved plaza under the researcher quarter — stone, not grass: keeps the ground itself reading as urban even where it isn't sandy coastline or bare tan. */
+    plaza: 0xaba290,
+    /** A submitted task's own colour on its one-way trip from the researcher quarter to the quay — see engine/flowController.ts. Deliberately a pale "paperwork" tone, distinct from the ferry's container (trust.ferry) and the crate it will eventually become (crate.body): this hasn't been agreed to by any island yet. */
+    submission: 0xeee0c5,
   },
   /** Reserved exclusively for the two human gates: Gate 1 (project approval) and Gate 2 (output review). Never used for anything else. */
   gate: {

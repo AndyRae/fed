@@ -83,11 +83,11 @@ const treNames = new Map(DEMO_TRES.map((t) => [t.id, t.name]));
 /**
  * Curated landmark subset for persistent floating labels — every named
  * "point of interest" per island (including that island's own customs
- * hall), plus the mainland's equivalent. Structural/background meshes
- * (ISLAND_LAND, ISLAND_WALL, MAINLAND_LAND,
- * SEA, ...) stay clickable via the picker below, but don't get their own
- * always-on label — with this many of them on screen at once, that would
- * be clutter rather than explanation.
+ * hall), plus the mainland's own equivalents (the quay dock, the
+ * researcher quarter). Structural/background meshes (ISLAND_LAND,
+ * ISLAND_WALL, MAINLAND_LAND, SEA, ...) stay clickable via the picker
+ * below, but don't get their own always-on label — with this many of them
+ * on screen at once, that would be clutter rather than explanation.
  */
 const LABELLED_KINDS = new Set([
   "VAULT",
@@ -96,6 +96,7 @@ const LABELLED_KINDS = new Set([
   "GATE2_INSPECTOR",
   "CUSTOMS_HALL",
   "MAINLAND_DOCK",
+  "RESEARCHER_QUARTER",
 ]);
 const labelTargets: { object: typeof worldGroup; text: string }[] = [];
 worldGroup.traverse((object) => {

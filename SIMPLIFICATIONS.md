@@ -60,6 +60,17 @@ to `RELEASED`/`OUTPUT_REFUSED`; the customs hall is part of the crate's
 geometry and journey, and the location of the existing `decideOutputReview`
 decision, not an additional tracked simulation state.
 
+## The researcher quarter's buildings are not tracked simulation state
+
+`SimState` has no notion of which researcher, institution, or building a
+task came from — `Project.researcher` is a free-text name, nothing more.
+The researcher quarter (`src/world/mainland.ts`) and the submission
+animation that departs from it (`src/engine/flowController.ts`) are a
+single fixed visual origin for every submission, regardless of which
+researcher or project it belongs to. This is a rendering choice for
+where a task's own journey visibly begins, not a claim that the model
+tracks per-researcher geography.
+
 ## The egress pattern depicted is "Full Local Control"
 
 docs.federated-analytics.ac.uk/federated_research_patterns/egress

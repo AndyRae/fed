@@ -143,11 +143,23 @@ export const ISLAND_RING_RADIUS = 24;
 export interface MainlandGeometry {
   readonly center: Vec3;
   readonly quayDock: Vec3;
+  /**
+   * Where researchers and their institutions are, collectively — the
+   * visual origin of a submitted task's own trip to the quay (see
+   * `submissionPath`). Decorative and collective, not a new gate: the
+   * quay itself is still the only place a task "begins" in protocol terms
+   * — see CLAUDE.md's world-metaphor table.
+   */
+  readonly researcherQuarter: Vec3;
 }
 
 export const mainlandGeometry: MainlandGeometry = {
   center: { x: 0, y: SEA_LEVEL_Y, z: -32 },
   quayDock: { x: 0, y: SEA_LEVEL_Y, z: -24 },
+  // On the inland side, away from the quay's own sea-facing edge, so the
+  // submission's trip to the dock reads as a real crossing of the mainland
+  // rather than a few units' shuffle.
+  researcherQuarter: { x: 6, y: SEA_LEVEL_Y, z: -40 },
 };
 
 export interface IslandGeometry {
@@ -244,4 +256,14 @@ export function egressPath(island: IslandGeometry): readonly Vec3[] {
  */
 export function workflowPath(island: IslandGeometry): readonly Vec3[] {
   return [island.harbourmasterOffice, island.workshop, island.customsHall];
+}
+
+/**
+ * A submitted task's own one-way trip from the researcher quarter to the
+ * quay, real coordinates. Entirely on the mainland — no sea crossing, no
+ * island involved — since submission happens before any TRE has agreed to
+ * anything. See CLAUDE.md's world-metaphor table.
+ */
+export function submissionPath(): readonly Vec3[] {
+  return [mainlandGeometry.researcherQuarter, mainlandGeometry.quayDock];
 }

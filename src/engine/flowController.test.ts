@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { decideOutputReview, decideProjectApproval, createInitialSimState, submitProject, submitTask, tick } from "../sim/sim.ts";
 import { getCrateForTask } from "../sim/selectors.ts";
+import { submissionPath } from "../world/layout.ts";
+import { MAINLAND_GROUND_HEIGHT } from "../world/mainland.ts";
 import { computeIslandGeometries } from "../world/world.ts";
 import { createFlowController, type FlowSceneHost } from "./flowController.ts";
 
@@ -236,6 +238,84 @@ describe("createFlowController", () => {
       if (o.userData.kind === "CRATE") crates++;
     });
     expect(crates).toBe(0);
+  });
+});
+
+describe("a submission's own trip from the researcher quarter to the quay", () => {
+  it("spawns at the researcher quarter on TASK_SUBMITTED and arrives at the quay dock, entirely on the mainland", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+
+    createFlowController(host, islands, () => state);
+
+    function findSubmission(): THREE.Object3D | undefined {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "SUBMISSION") found = o;
+      });
+      return found;
+    }
+
+    expect(findSubmission()).toBeUndefined();
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+
+    frame(0.01);
+    const submission = findSubmission();
+    expect(submission).toBeDefined();
+    const origin = submissionPath()[0]!;
+    expect(Math.hypot(submission!.position.x - origin.x, submission!.position.z - origin.z)).toBeLessThan(1);
+
+    for (let i = 0; i < 20; i++) frame(0.1);
+    // The trip finished and the mesh was removed — never orphaned sitting at the quay.
+    expect(findSubmission()).toBeUndefined();
+  });
+
+  it("clears the mainland's own raised terrain for the whole crossing, not just its low dock endpoint", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    createFlowController(host, islands, () => state);
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+
+    function findSubmission(): THREE.Object3D | undefined {
+      let found: THREE.Object3D | undefined;
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "SUBMISSION") found = o;
+      });
+      return found;
+    }
+
+    for (let i = 0; i < 10; i++) {
+      frame(0.1);
+      const submission = findSubmission();
+      if (!submission) continue;
+      expect(submission.position.y).toBeGreaterThan(MAINLAND_GROUND_HEIGHT);
+    }
+  });
+
+  it("never visits any island — submission happens before any TRE is involved", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    let state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    createFlowController(host, islands, () => state);
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+
+    let submission: THREE.Object3D | undefined;
+    const island = islands.get("tre-a")!;
+    for (let i = 0; i < 10; i++) {
+      frame(0.1);
+      host.scene.traverse((o) => {
+        if (o.userData.kind === "SUBMISSION") submission = o;
+      });
+      if (!submission) continue;
+      const dx = submission.position.x - island.center.x;
+      const dz = submission.position.z - island.center.z;
+      expect(Math.hypot(dx, dz)).toBeGreaterThan(island.wallRadius);
+    }
   });
 });
 
