@@ -1,6 +1,5 @@
 import "./ui/styles.css";
 
-import type * as THREE from "three";
 import { explanationForKind } from "./core/explanations.ts";
 import type { SimState, TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
@@ -8,7 +7,6 @@ import { createFlowController, type FlowController } from "./engine/flowControll
 import { createLabels } from "./engine/labels.ts";
 import { createPicker } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
-import { createSeaAnimator } from "./engine/seaAnimator.ts";
 import { createRng } from "./sim/rng.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
@@ -62,15 +60,6 @@ cameraRig.setPose({
 
 const worldGroup = buildWorld(currentState);
 engine.scene.add(worldGroup);
-
-// Ambient decorative motion, entirely independent of SimState and of
-// whether a tour or free-roam owns the camera right now — see CLAUDE.md
-// "Visual language": it never pauses/swaps the way flowController does.
-let seaMesh: THREE.Mesh | undefined;
-worldGroup.traverse((object) => {
-  if (object.userData.kind === "SEA") seaMesh = object as THREE.Mesh;
-});
-if (seaMesh) createSeaAnimator(engine, seaMesh);
 
 // Shared by the ambient demo's flow controller and every tour's camera
 // resolver, so a TRE's rendered position always matches whichever one is
