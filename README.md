@@ -34,12 +34,13 @@ npm run dev
 ```
 
 Vite will print a local URL (typically `http://localhost:5173`) — open it in
-your browser. You should see three islands and a mainland, with ferries and
-crates animating in the background, and a live activity panel in the
-bottom-left corner tallying the whole funnel. Use the two buttons in the
-top-right to start a guided tour; while touring, use `←`/`→`/Space to step,
-Escape to exit back to free-roam, and click **Technical detail** on any
-narration card to expand the technical register.
+your browser. You should see an island (or more — see `main.ts`'s
+`DEMO_TRES`) and a mainland, with ferries and crates animating in the
+background, and a live activity panel in the bottom-left corner tallying
+the whole funnel. Use the two buttons in the top-right to start a guided
+tour; while touring, use `←`/`→`/Space to step, Escape to exit back to
+free-roam, and click **Technical detail** on any narration card to expand
+the technical register.
 
 ## Other scripts
 

@@ -28,11 +28,11 @@ if (!container) {
   throw new Error("#app root element is missing");
 }
 
-const DEMO_TRES = [
-  { id: "tre-a", name: "Isle of Ailsa" },
-  { id: "tre-b", name: "Isle of Kessel" },
-  { id: "tre-c", name: "Isle of Muck" },
-];
+// Kept to one island for faster iteration during active development —
+// buildWorld/computeIslandGeometries/the flow controller are all already
+// generic over an arbitrary TRE count, so restoring more islands later is
+// just growing this list. See CLAUDE.md's world metaphor table.
+const DEMO_TRES = [{ id: "tre-a", name: "Isle of Ailsa" }];
 
 const STUDY_NAMES = [
   "Cardiovascular Risk Study",
