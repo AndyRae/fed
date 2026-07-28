@@ -16,6 +16,16 @@ export function getCrateForTask(state: SimState, taskId: TaskId): Crate | undefi
   return state.crates.find((c) => c.taskId === taskId);
 }
 
+/** Every project still awaiting this TRE's own Gate 1 decision — the harbourmaster's own inbox. */
+export function pendingApprovalsForTre(state: SimState, treId: TreId): readonly ProjectApproval[] {
+  return state.approvals.filter((a) => a.treId === treId && a.status === "PENDING");
+}
+
+/** Every crate still awaiting this TRE's own Gate 2 decision — the customs inspector's own inbox. */
+export function heldCratesForTre(state: SimState, treId: TreId): readonly Crate[] {
+  return state.crates.filter((c) => c.treId === treId && c.status === "HELD");
+}
+
 /**
  * Aggregation happens at the researcher's quay, after release — this is the
  * one point in the model that reads across TREs, and only over crates that

@@ -41,7 +41,10 @@ const SECTIONS: readonly ControlSection[] = [
   },
   {
     title: "Interaction",
-    rows: [{ keys: ["Click"], description: "Select an entity — open the inspector and see what it represents" }],
+    rows: [
+      { keys: ["Click"], description: "Select an entity — open the inspector and see what it represents" },
+      { keys: ["⚖"], description: "Take manual control of both gates — then click the harbourmaster or the customs inspector to decide a pending case yourself" },
+    ],
   },
   {
     title: "Tours",

@@ -12,6 +12,7 @@ import { createEngine } from "./engine/renderer.ts";
 import { createVaultShimmer } from "./engine/vaultShimmer.ts";
 import { createWhaleController, type WhaleExclusionZone } from "./engine/whaleController.ts";
 import { createRng } from "./sim/rng.ts";
+import { getApproval, getCrate } from "./sim/selectors.ts";
 import { createInitialSimState, decideOutputReview, decideProjectApproval, submitProject, submitTask, tick } from "./sim/sim.ts";
 import { applyThemeCssVariables } from "./ui/cssTheme.ts";
 import { mountHelpOverlay } from "./ui/helpOverlay.ts";
@@ -142,9 +143,19 @@ worldGroup.traverse((object) => {
 });
 createLabels(engine, container, labelTargets);
 
+// Whether the visitor currently has manual control of both gates — see the
+// HUD's ⚖ toggle below. Declared this early so the inspector's decision UI
+// (which reads it on every click, long before the toggle itself is wired
+// up further down) always sees a real value rather than a forward
+// reference to an uninitialised binding.
+let manualGatesEnabled = false;
+
 const inspector = mountInspectorPanel(document.body, {
   treNames,
   getState: () => currentState,
+  isManualGatesEnabled: () => manualGatesEnabled,
+  onDecideProjectApproval: ({ projectId, treId, decision }) => decideProjectApprovalManually(projectId, treId, decision),
+  onDecideOutputReview: ({ crateId, decision }) => decideOutputReviewManually(crateId, decision),
 });
 
 // --- Simulation speed ----------------------------------------------------
@@ -213,16 +224,24 @@ const GATE1_REFUSAL_RATE = 0.15;
 const GATE2_REFUSAL_RATE = 0.12;
 
 /**
- * The click-to-decide UI for Gate 1/Gate 2 doesn't exist yet — this
- * free-roam ambient demo stands in for it with a delayed timer, so the
- * queue still visibly holds rather than deciding instantly (honesty rule
- * 3). The decision itself is drawn now, before the timer, so the queue's
- * wait is the only place its outcome is hidden — not a coin flip at reveal
- * time.
+ * The default, unattended behaviour: a delayed timer stands in for a human
+ * gate, so the queue still visibly holds rather than deciding instantly
+ * (honesty rule 3). The decision itself is drawn now, before the timer, so
+ * the queue's wait is the only place its outcome is hidden — not a coin
+ * flip at reveal time. Skipped entirely once the visitor takes manual
+ * control of the gates (the HUD's ⚖ toggle) — see inspectorPanel.ts's own
+ * decision UI for that path. Both the scheduling check and the check
+ * inside the timer itself matter: manual mode can be switched on *after*
+ * this was already scheduled, and the visitor can decide this exact item
+ * themselves before the timer fires — decideProjectApproval throws on an
+ * already-decided approval, so the second guard keeps that a no-op instead
+ * of an unhandled error.
  */
 function scheduleProjectApproval(projectId: string, treId: TreId, decidedBy: string, delayMs: number): void {
   const decision: "APPROVED" | "REFUSED" = demoRng() < GATE1_REFUSAL_RATE ? "REFUSED" : "APPROVED";
   setTimeout(() => {
+    if (manualGatesEnabled) return;
+    if (getApproval(currentState, projectId, treId)?.status !== "PENDING") return;
     currentState = decideProjectApproval(currentState, {
       projectId,
       treId,
@@ -232,8 +251,23 @@ function scheduleProjectApproval(projectId: string, treId: TreId, decidedBy: str
   }, delayMs);
 }
 
+/** Every TRE's own pending approval gets exactly one auto-decision scheduled, the moment it's first seen — never re-scheduled once it's in this set, whichever way (a timer firing or the visitor deciding it manually) resolves it. */
+const scheduledForApproval = new Set<string>();
+function scheduleNewProjectApprovals(): void {
+  if (manualGatesEnabled) return;
+  for (const approval of currentState.approvals) {
+    if (approval.status !== "PENDING") continue;
+    const key = `${approval.projectId}:${approval.treId}`;
+    if (scheduledForApproval.has(key)) continue;
+    scheduledForApproval.add(key);
+    const treName = DEMO_TRES.find((t) => t.id === approval.treId)?.name ?? approval.treId;
+    scheduleProjectApproval(approval.projectId, approval.treId, `Harbourmaster of ${treName}`, BASE_GATE1_DELAY_MS / simSpeed);
+  }
+}
+
 const scheduledForReview = new Set<string>();
 function scheduleNewOutputReviews(): void {
+  if (manualGatesEnabled) return;
   for (const crate of currentState.crates) {
     if (crate.status !== "HELD" || scheduledForReview.has(crate.id)) continue;
     scheduledForReview.add(crate.id);
@@ -243,9 +277,37 @@ function scheduleNewOutputReviews(): void {
     // well under a second) before "a human" decides — honesty rule 3, the
     // queue must visibly hold, not just skip straight to the outcome.
     setTimeout(() => {
+      if (manualGatesEnabled) return;
+      if (getCrate(currentState, crate.id)?.status !== "HELD") return;
       currentState = decideOutputReview(currentState, { crateId: crate.id, decision });
     }, BASE_GATE2_DELAY_MS / simSpeed);
   }
+}
+
+/**
+ * The visitor's own decision, made through inspectorPanel.ts's Gate 1 card
+ * — only reachable while manual mode is on and only ever offered for a
+ * project that's actually still PENDING there, but this guards again
+ * anyway: a lingering auto-timer scheduled just before manual mode was
+ * switched on could in principle resolve the same approval first.
+ */
+function decideProjectApprovalManually(projectId: string, treId: TreId, decision: "APPROVED" | "REFUSED"): void {
+  if (getApproval(currentState, projectId, treId)?.status !== "PENDING") return;
+  const treName = DEMO_TRES.find((t) => t.id === treId)?.name ?? treId;
+  currentState = decideProjectApproval(currentState, {
+    projectId,
+    treId,
+    decision,
+    decidedBy: `You, harbourmaster of ${treName}`,
+  });
+  statsPanel.update();
+}
+
+/** The visitor's own decision at Gate 2 — same shape and the same reasoning as decideProjectApprovalManually above. */
+function decideOutputReviewManually(crateId: string, decision: "RELEASED" | "REFUSED"): void {
+  if (getCrate(currentState, crateId)?.status !== "HELD") return;
+  currentState = decideOutputReview(currentState, { crateId, decision });
+  statsPanel.update();
 }
 
 // Generous enough that even the top of the speed range takes a long, real
@@ -255,10 +317,14 @@ const MAX_DEMO_PROJECTS = 2000;
 let projectCounter = 0;
 
 /**
- * Submits one new project to every island and schedules its approvals, so
- * ferries keep departing and returning indefinitely instead of the world
- * going static after the first round trip. Capped so an indefinitely open
- * tab doesn't grow SimState's arrays without bound.
+ * Submits one new project to every island, so ferries keep departing and
+ * returning indefinitely instead of the world going static after the
+ * first round trip. Capped so an indefinitely open tab doesn't grow
+ * SimState's arrays without bound. Its approval is picked up and
+ * scheduled by the next scheduleNewProjectApprovals() pass rather than
+ * scheduled directly here — the same pass that also has to handle every
+ * approval left pending from a stretch of manual-gates time, so there is
+ * only the one path for "a PENDING approval needs a decision, eventually."
  */
 function spawnDemoProject(): void {
   if (projectCounter >= MAX_DEMO_PROJECTS) return;
@@ -269,8 +335,7 @@ function spawnDemoProject(): void {
     researcher: pickFrom(RESEARCHERS),
     targetTreIds: DEMO_TRES.map((t) => t.id),
   });
-  DEMO_TRES.forEach((tre, index) => {
-    scheduleProjectApproval(id, tre.id, `Harbourmaster of ${tre.name}`, (BASE_GATE1_DELAY_MS + index * BASE_GATE1_DELAY_MS) / simSpeed);
+  DEMO_TRES.forEach((tre) => {
     scheduleProjectTasks(id, tre.id);
   });
 }
@@ -305,6 +370,7 @@ function resumeAmbientDemo(): void {
   if (ambientTimer != null) return;
   ambientTimer = window.setInterval(() => {
     currentState = tick(currentState, 1);
+    scheduleNewProjectApprovals();
     scheduleNewOutputReviews();
     statsPanel.update();
   }, BASE_TICK_INTERVAL_MS / simSpeed);
@@ -388,6 +454,10 @@ const hud = mountHud(document.body, {
   onToggleNight: () => {
     nightMode.toggle();
     hud.setNightActive(nightMode.isEnabled());
+  },
+  onToggleManualGates: () => {
+    manualGatesEnabled = !manualGatesEnabled;
+    hud.setManualGatesActive(manualGatesEnabled);
   },
 });
 

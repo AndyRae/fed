@@ -12,12 +12,15 @@ export interface HudOptions {
   readonly onStartTour: (tour: Tour) => void;
   readonly onToggleHelp: () => void;
   readonly onToggleNight: () => void;
+  readonly onToggleManualGates: () => void;
 }
 
 export interface HudHandle {
   dispose(): void;
   /** Reflects the toggle's own visual pressed state — night mode's actual on/off state lives in engine/nightMode.ts, not here. */
   setNightActive(active: boolean): void;
+  /** Same pattern as setNightActive — the manual/automatic state itself lives in main.ts. */
+  setManualGatesActive(active: boolean): void;
 }
 
 const SCALED_TIME_DISCLOSURE =
@@ -45,6 +48,15 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     on: { click: () => options.onToggleNight() },
   });
 
+  const gatesButton = el("button", {
+    class: "fsa-btn fsa-hud-top__gates",
+    type: "button",
+    text: "⚖",
+    "aria-label": "Toggle manual control of the gates",
+    "aria-pressed": "false",
+    on: { click: () => options.onToggleManualGates() },
+  });
+
   const helpButton = el("button", {
     class: "fsa-btn fsa-hud-top__help",
     type: "button",
@@ -58,7 +70,7 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     { id: "fsa-hud-top", class: "fsa-hud-top" },
     el("div", { class: "fsa-hud-top__title", text: "Five Safes Archipelago" }),
     el("div", { class: "fsa-hud-top__disclosure", text: SCALED_TIME_DISCLOSURE }),
-    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, nightButton, helpButton),
+    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, gatesButton, nightButton, helpButton),
   );
   root.append(bar);
 
@@ -69,6 +81,10 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     setNightActive(active) {
       nightButton.classList.toggle("is-active", active);
       nightButton.setAttribute("aria-pressed", String(active));
+    },
+    setManualGatesActive(active) {
+      gatesButton.classList.toggle("is-active", active);
+      gatesButton.setAttribute("aria-pressed", String(active));
     },
   };
 }
