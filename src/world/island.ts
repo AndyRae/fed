@@ -21,7 +21,9 @@ const LAND_BEVEL_THICKNESS = 0.35;
  * geometry.
  */
 export const GROUND_HEIGHT = ISLAND_HEIGHT + LAND_BEVEL_THICKNESS;
-const WALL_TUBE_RADIUS = 0.6;
+// Thinner than the original 0.6 — feedback was that the wall ring read as
+// too dominating a shape against the rest of the island.
+const WALL_TUBE_RADIUS = 0.4;
 
 /** A short, deterministic string hash — turns a TreId into an RNG seed so each island's shape is stable across reloads without needing to thread a seed through IslandGeometry. */
 function hashTreId(treId: TreId): number {

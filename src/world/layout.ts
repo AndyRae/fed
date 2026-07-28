@@ -131,14 +131,15 @@ function vecLerp(a: Vec3, b: Vec3, t: number): Vec3 {
 }
 
 export const SEA_LEVEL_Y = 0;
-// A touch bigger than the original 9 — more room for each island's
-// elements to breathe — while staying safely under the ~11.1 ceiling a
-// 3-island layout needs to keep adjacent walls from overlapping (see
-// layout.test.ts "never overlaps another island's wall": at
-// ISLAND_RING_RADIUS 24 with a 110° spread across 3 islands, adjacent
-// centres sit ~22.16 apart, so 2 × wallRadius must stay under that).
-export const ISLAND_WALL_RADIUS = 10;
-export const ISLAND_RING_RADIUS = 24;
+// A touch bigger again — feedback was that the island read a little small
+// on screen — paired with a matching bump to ISLAND_RING_RADIUS so adjacent
+// walls in a 3-island layout keep the same ~2-unit safety margin they had
+// before (see layout.test.ts "never overlaps another island's wall": at
+// ISLAND_RING_RADIUS 26 with a 110° spread across 3 islands, adjacent
+// centres sit ~24.0 apart, so 2 × wallRadius (22) stays comfortably under
+// that).
+export const ISLAND_WALL_RADIUS = 11;
+export const ISLAND_RING_RADIUS = 26;
 
 export interface MainlandGeometry {
   readonly center: Vec3;
