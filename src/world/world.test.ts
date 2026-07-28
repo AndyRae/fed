@@ -92,6 +92,20 @@ describe("buildWorld", () => {
     expect(findAllByKind(world, "WORKFLOW_ROUTE").map((l) => l.userData.treId).sort()).toEqual(["tre-a", "tre-b"]);
   });
 
+  it("makes every mesh receive shadows, and cast them too except the flat sea", () => {
+    const state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    const world = buildWorld(state);
+    let meshCount = 0;
+    world.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        meshCount++;
+        expect(obj.receiveShadow).toBe(true);
+        expect(obj.castShadow).toBe(obj.userData.kind !== "SEA");
+      }
+    });
+    expect(meshCount).toBeGreaterThan(0);
+  });
+
   it("never mutates the SimState it reads", () => {
     const state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
     const before = JSON.parse(JSON.stringify(state));

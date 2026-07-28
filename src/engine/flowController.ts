@@ -89,6 +89,7 @@ function buildFerryMesh(treId: TreId): THREE.Object3D {
     new THREE.MeshStandardMaterial({ color: theme.trust.ferry, roughness: 0.6 }),
   );
   mesh.rotation.x = Math.PI / 2;
+  mesh.castShadow = true;
   mesh.userData.kind = "FERRY";
   mesh.userData.treId = treId;
   return mesh;
@@ -108,6 +109,7 @@ function buildContainerMesh(treId: TreId): THREE.Object3D {
     new THREE.BoxGeometry(0.9, 0.65, 1.3),
     new THREE.MeshStandardMaterial({ color: theme.trust.ferry, roughness: 0.6, metalness: 0.15 }),
   );
+  mesh.castShadow = true;
   mesh.userData.kind = "CONTAINER";
   mesh.userData.treId = treId;
   return mesh;
@@ -126,6 +128,7 @@ function buildSubmissionMesh(): THREE.Object3D {
     new THREE.BoxGeometry(0.7, 0.12, 1.0),
     new THREE.MeshStandardMaterial({ color: theme.untrusted.submission, roughness: 0.6 }),
   );
+  mesh.castShadow = true;
   mesh.userData.kind = "SUBMISSION";
   return mesh;
 }
@@ -135,6 +138,7 @@ function buildCrateMesh(treId: TreId): THREE.Object3D {
     new THREE.BoxGeometry(1, 0.8, 1),
     new THREE.MeshStandardMaterial({ color: theme.crate.body, roughness: 0.8 }),
   );
+  mesh.castShadow = true;
   mesh.userData.kind = "CRATE";
   mesh.userData.treId = treId;
   return mesh;

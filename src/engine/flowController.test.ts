@@ -66,6 +66,20 @@ describe("createFlowController", () => {
     }
   });
 
+  it("casts shadows from every ferry mesh, so a moving ferry reads as a real object above the sea", () => {
+    const { host } = createFakeHost();
+    const islands = computeIslandGeometries([{ id: "tre-a", name: "A" }]);
+    const state = createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }] });
+    createFlowController(host, islands, () => state);
+
+    let ferry: THREE.Object3D | undefined;
+    host.scene.traverse((o) => {
+      if (o.userData.kind === "FERRY") ferry = o;
+    });
+    expect(ferry).toBeInstanceOf(THREE.Mesh);
+    expect((ferry as THREE.Mesh).castShadow).toBe(true);
+  });
+
   it("animates a ferry away from its dock and back when TASK_COLLECTED appears, over the whole trip never entering another island's wall", () => {
     const { host, frame } = createFakeHost();
     const islands = computeIslandGeometries([

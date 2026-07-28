@@ -22,6 +22,20 @@ export function computeIslandGeometries(tres: readonly Tre[]): ReadonlyMap<TreId
 }
 
 /**
+ * Every mesh receives shadows, and casts one too except the sea — a flat
+ * plane at the bottom of the world has nothing beneath it to shadow, so
+ * casting from it would only cost render time for no visible effect.
+ */
+function enableShadows(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) {
+      obj.receiveShadow = true;
+      obj.castShadow = obj.userData.kind !== "SEA";
+    }
+  });
+}
+
+/**
  * Builds the whole static world from a SimState: sea, mainland, and one
  * island per TRE — each island carrying its own customs hall, since there
  * is no shared or central one. Reads SimState, never mutates it. See
@@ -44,5 +58,6 @@ export function buildWorld(state: SimState): THREE.Object3D {
     group.add(buildWorkflowRouteLine(geometry));
   }
 
+  enableShadows(group);
   return group;
 }
