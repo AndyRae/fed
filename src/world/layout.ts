@@ -164,10 +164,12 @@ export interface MainlandGeometry {
 export const mainlandGeometry: MainlandGeometry = {
   center: { x: 0, y: SEA_LEVEL_Y, z: -32 },
   quayDock: { x: 0, y: SEA_LEVEL_Y, z: -24 },
-  // Beside the dock, on solid ground rather than out over the jetty itself
-  // — clear of the dock's own footprint (half-width 1.5) and well inside
-  // the coastline.
-  quayOffice: { x: -3.5, y: SEA_LEVEL_Y, z: -26 },
+  // Tight against the dock's own side, at exactly the dock's z — not set
+  // back inland — so every route that ends at quayDock (the ferry, a
+  // released crate, a submission) visibly arrives at this building, not at
+  // an empty platform with an unconnected office somewhere behind it. Clear
+  // of the dock's own footprint (half-width 1.5) by only a small gap.
+  quayOffice: { x: 2.5, y: SEA_LEVEL_Y, z: -24 },
   // On the inland side, away from the quay's own sea-facing edge, so the
   // submission's trip to the dock reads as a real crossing of the mainland
   // rather than a few units' shuffle.

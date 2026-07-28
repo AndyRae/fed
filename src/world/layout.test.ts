@@ -254,11 +254,16 @@ describe("real geometry: workflowPath", () => {
 });
 
 describe("real geometry: mainlandGeometry.quayOffice", () => {
-  it("sits close beside the dock, not out over the water on it", () => {
+  it("sits tight beside the dock — close enough to read as the building every route into the quay actually arrives at", () => {
     const office = mainlandGeometry.quayOffice;
     const dock = mainlandGeometry.quayDock;
     expect(distance(office, dock)).toBeGreaterThan(0.5);
-    expect(distance(office, dock)).toBeLessThan(6);
+    expect(distance(office, dock)).toBeLessThan(3);
+  });
+
+  it("shares the dock's own position along the coast (same z) rather than sitting behind or beside at an angle — the ferry, egress, and submission paths all end at exactly this z", () => {
+    const office = mainlandGeometry.quayOffice;
+    expect(office.z).toBeCloseTo(mainlandGeometry.quayDock.z, 5);
   });
 
   it("is distinct from the mainland centre, the dock, and the researcher quarter", () => {
