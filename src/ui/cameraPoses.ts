@@ -46,21 +46,25 @@ export function resolveCameraPose(pose: CameraPose, islands: ReadonlyMap<TreId, 
       const island = requireIsland(islands, pose.treId);
       return poseLookingAt(island.center, 22, 16);
     }
+    // The four on-island landmark close-ups (distance and height both ~10%
+    // further back than a first pass had them, same ratio preserved so the
+    // framing angle doesn't change) — tour feedback was that these read a
+    // little too tight to frame the landmark and its surroundings well.
     case "treGate1": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.harbourmasterOffice, 9, 8);
+      return poseLookingAt(island.harbourmasterOffice, 9.9, 8.8);
     }
     case "treWorkshop": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.workshop, 9, 8);
+      return poseLookingAt(island.workshop, 9.9, 8.8);
     }
     case "treVault": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.vault, 7, 6);
+      return poseLookingAt(island.vault, 7.7, 6.6);
     }
     case "treCustoms": {
       const island = requireIsland(islands, pose.treId);
-      return poseLookingAt(island.customsHall, 9, 8);
+      return poseLookingAt(island.customsHall, 9.9, 8.8);
     }
   }
 }
