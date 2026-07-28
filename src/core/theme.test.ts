@@ -25,6 +25,7 @@ function semanticColorEntries(): [string, number][] {
     ["vault.reserved", theme.vault.reserved],
     ["crate.body", theme.crate.body],
     ["customs.hall", theme.customs.hall],
+    ["night.ferryLight", theme.night.ferryLight],
   ];
 }
 

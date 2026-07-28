@@ -6,6 +6,7 @@ import type { SimState, TreId } from "./core/types.ts";
 import { createCameraRig } from "./engine/cameraRig.ts";
 import { createFlowController, type FlowController } from "./engine/flowController.ts";
 import { createLabels } from "./engine/labels.ts";
+import { createNightModeController } from "./engine/nightMode.ts";
 import { createPicker } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createVaultShimmer } from "./engine/vaultShimmer.ts";
@@ -378,11 +379,16 @@ function startTour(tour: Tour): void {
 const SOURCE_URL = "https://github.com/andyrae/fed";
 
 const helpOverlay = mountHelpOverlay(document.body, SOURCE_URL);
+const nightMode = createNightModeController(engine);
 
-mountHud(document.body, {
+const hud = mountHud(document.body, {
   tours: [journeyOfATaskTour, theResultThatNeverLeftTour],
   onStartTour: startTour,
   onToggleHelp: () => helpOverlay.toggle(),
+  onToggleNight: () => {
+    nightMode.toggle();
+    hud.setNightActive(nightMode.isEnabled());
+  },
 });
 
 window.addEventListener("keydown", (event) => {

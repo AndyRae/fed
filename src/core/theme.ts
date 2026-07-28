@@ -54,4 +54,8 @@ export const theme = {
   customs: {
     hall: 0xb98a5e,
   },
+  /** A fixture, not a zone or a gate: the small running light every island's own ferry carries (see engine/flowController.ts's buildFerryMesh). Present at all times, but only lit — see engine/nightMode.ts — once night mode is on. */
+  night: {
+    ferryLight: 0xfff2c9,
+  },
 } as const;

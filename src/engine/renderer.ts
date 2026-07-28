@@ -5,22 +5,30 @@ import * as THREE from "three";
  * top of frame — replaces a flat solid colour with something that reads as
  * open sky. Baked once into a tiny texture (no shader, no per-frame cost),
  * consistent with this codebase's preference for static, cheap effects over
- * anything that could behave differently across browsers or GPUs.
+ * anything that could behave differently across browsers or GPUs. Shared
+ * with engine/nightMode.ts, which bakes its own night-sky texture the same
+ * way with different colour stops.
  */
-function createSkyGradientTexture(): THREE.Texture {
+export function createVerticalGradientTexture(stops: readonly [number, string][]): THREE.Texture {
   const canvas = document.createElement("canvas");
   canvas.width = 1;
   canvas.height = 256;
   const ctx = canvas.getContext("2d")!;
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  gradient.addColorStop(0, "#bfe7f7");
-  gradient.addColorStop(0.6, "#a9defa");
-  gradient.addColorStop(1, "#8fcdf0");
+  for (const [offset, color] of stops) gradient.addColorStop(offset, color);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+function createSkyGradientTexture(): THREE.Texture {
+  return createVerticalGradientTexture([
+    [0, "#bfe7f7"],
+    [0.6, "#a9defa"],
+    [1, "#8fcdf0"],
+  ]);
 }
 
 /**
@@ -33,6 +41,9 @@ export interface Engine {
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
+  /** The sky's fill light and its directional "sun" — exposed so engine/nightMode.ts can dim and recolour them without reaching into the scene graph to find them. */
+  readonly hemiLight: THREE.HemisphereLight;
+  readonly sunLight: THREE.DirectionalLight;
   /** Registers a callback run once per frame before rendering (e.g. camera controls, flow animation). Returns an unsubscribe function. */
   onBeforeRender(fn: (deltaSeconds: number) => void): () => void;
   dispose(): void;
@@ -108,6 +119,8 @@ export function createEngine(container: HTMLElement): Engine {
     scene,
     camera,
     renderer,
+    hemiLight,
+    sunLight,
     onBeforeRender,
     dispose() {
       running = false;

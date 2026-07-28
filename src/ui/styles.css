@@ -516,6 +516,11 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   font-weight: 700;
 }
 
+.fsa-hud-top__night.is-active {
+  background: rgba(94, 129, 214, 0.28);
+  border-color: #7f9de0;
+}
+
 /* --------------------------------- mobile ---------------------------------- */
 
 /* Below this width the top bar's title + disclosure + tour buttons no

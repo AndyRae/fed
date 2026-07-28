@@ -11,10 +11,13 @@ export interface HudOptions {
   readonly tours: readonly Tour[];
   readonly onStartTour: (tour: Tour) => void;
   readonly onToggleHelp: () => void;
+  readonly onToggleNight: () => void;
 }
 
 export interface HudHandle {
   dispose(): void;
+  /** Reflects the toggle's own visual pressed state — night mode's actual on/off state lives in engine/nightMode.ts, not here. */
+  setNightActive(active: boolean): void;
 }
 
 const SCALED_TIME_DISCLOSURE =
@@ -33,6 +36,15 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     ),
   );
 
+  const nightButton = el("button", {
+    class: "fsa-btn fsa-hud-top__night",
+    type: "button",
+    text: "🌙",
+    "aria-label": "Toggle night mode",
+    "aria-pressed": "false",
+    on: { click: () => options.onToggleNight() },
+  });
+
   const helpButton = el("button", {
     class: "fsa-btn fsa-hud-top__help",
     type: "button",
@@ -46,13 +58,17 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     { id: "fsa-hud-top", class: "fsa-hud-top" },
     el("div", { class: "fsa-hud-top__title", text: "Five Safes Archipelago" }),
     el("div", { class: "fsa-hud-top__disclosure", text: SCALED_TIME_DISCLOSURE }),
-    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, helpButton),
+    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, nightButton, helpButton),
   );
   root.append(bar);
 
   return {
     dispose() {
       bar.remove();
+    },
+    setNightActive(active) {
+      nightButton.classList.toggle("is-active", active);
+      nightButton.setAttribute("aria-pressed", String(active));
     },
   };
 }

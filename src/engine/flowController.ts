@@ -170,6 +170,22 @@ function buildWakeDotMesh(treId: TreId): THREE.Mesh {
   return mesh;
 }
 
+/**
+ * A small running light, always physically present on the ferry (real boats
+ * carry theirs in daylight too) but only lit — see engine/nightMode.ts —
+ * once night mode is on: dim and unremarkable by day, glowing by night.
+ * Untagged, like the wake dots: it's a fixture, not something the picker
+ * should ever resolve to on its own.
+ */
+function buildFerryLightMesh(): THREE.Object3D {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 8, 6),
+    new THREE.MeshStandardMaterial({ color: theme.night.ferryLight, roughness: 0.4 }),
+  );
+  mesh.position.set(0, 0.35, 0.9);
+  return mesh;
+}
+
 function buildFerryMesh(treId: TreId): THREE.Object3D {
   const mesh = new THREE.Mesh(
     new THREE.ConeGeometry(0.9, 2.2, 4),
@@ -179,6 +195,7 @@ function buildFerryMesh(treId: TreId): THREE.Object3D {
   mesh.castShadow = true;
   mesh.userData.kind = "FERRY";
   mesh.userData.treId = treId;
+  mesh.add(buildFerryLightMesh());
   return mesh;
 }
 
