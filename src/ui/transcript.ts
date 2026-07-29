@@ -45,7 +45,7 @@ function describeFocus(focus: FocusEntity, state: SimState): string {
     case "crate": {
       const crate = getCrate(state, focus.crateId);
       return crate
-        ? `Crate in focus: ${crate.id}, status ${crate.status}.`
+        ? `Crate in focus: ${crate.id}, status ${crate.status}. Content: ${crate.content.summary} ${crate.content.rows.join("; ")}.`
         : `Crate in focus: ${focus.crateId} (not yet sealed).`;
     }
   }

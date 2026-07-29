@@ -20,10 +20,11 @@ import { applyThemeCssVariables } from "./ui/cssTheme.ts";
 import { mountHelpOverlay } from "./ui/helpOverlay.ts";
 import { mountHud } from "./ui/hud.ts";
 import { mountInspectorPanel } from "./ui/inspectorPanel.ts";
+import { mountProjectForm } from "./ui/projectForm.ts";
 import { mountStatsPanel } from "./ui/statsPanel.ts";
 import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
-import { journeyOfATaskTour, theFiveSafesTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
+import { buildYourProjectTour, journeyOfATaskTour, theFiveSafesTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
 import type { Tour } from "./ui/tourTypes.ts";
 import { mainlandGeometry, type IslandGeometry } from "./world/layout.ts";
 import { MAINLAND_RADIUS } from "./world/mainland.ts";
@@ -665,6 +666,19 @@ function startTour(tour: Tour): void {
   });
 }
 
+/**
+ * Opens the "create your own project" form (see ui/projectForm.ts) and, on
+ * submission, builds a fresh Tour from the visitor's own title/area/analysis
+ * choices and hands it to the same startTour() every fixed launch tour
+ * already uses — no separate playback path to keep honest.
+ */
+function openYourProjectForm(): void {
+  mountProjectForm(document.body, {
+    onSubmit: (input) => startTour(buildYourProjectTour(input)),
+    onCancel: () => {},
+  });
+}
+
 const SOURCE_URL = "https://github.com/andyrae/fed";
 
 const helpOverlay = mountHelpOverlay(document.body, SOURCE_URL);
@@ -673,6 +687,7 @@ const nightMode = createNightModeController(engine);
 const hud = mountHud(document.body, {
   tours: [journeyOfATaskTour, theResultThatNeverLeftTour, theFiveSafesTour],
   onStartTour: startTour,
+  onStartYourProjectFlow: openYourProjectForm,
   onToggleHelp: () => helpOverlay.toggle(),
   onToggleNight: () => {
     nightMode.toggle();
@@ -710,6 +725,7 @@ declare global {
         journeyOfATaskTour: typeof journeyOfATaskTour;
         theResultThatNeverLeftTour: typeof theResultThatNeverLeftTour;
         theFiveSafesTour: typeof theFiveSafesTour;
+        buildYourProjectTour: typeof buildYourProjectTour;
         playTour: typeof playTour;
       };
     };
@@ -728,5 +744,5 @@ window.ARCHIPELAGO = {
   get picker() {
     return picker;
   },
-  tours: { journeyOfATaskTour, theResultThatNeverLeftTour, theFiveSafesTour, playTour },
+  tours: { journeyOfATaskTour, theResultThatNeverLeftTour, theFiveSafesTour, buildYourProjectTour, playTour },
 };

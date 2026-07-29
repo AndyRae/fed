@@ -10,6 +10,8 @@ import type { Tour } from "./tourTypes.ts";
 export interface HudOptions {
   readonly tours: readonly Tour[];
   readonly onStartTour: (tour: Tour) => void;
+  /** Opens the "create your own project" form — see src/ui/projectForm.ts. Unlike onStartTour, this doesn't start a tour directly: the form itself builds one from the visitor's own choices first. */
+  readonly onStartYourProjectFlow: () => void;
   readonly onToggleHelp: () => void;
   readonly onToggleNight: () => void;
   readonly onToggleManualGates: () => void;
@@ -41,6 +43,13 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
       },
     ),
   );
+
+  const yourProjectButton = el("button", {
+    class: "fsa-btn fsa-hud-top__your-project",
+    type: "button",
+    text: "📝 Create your own project",
+    on: { click: () => options.onStartYourProjectFlow() },
+  });
 
   const orbitButton = el("button", {
     class: "fsa-btn fsa-hud-top__orbit",
@@ -82,7 +91,7 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     { id: "fsa-hud-top", class: "fsa-hud-top" },
     el("div", { class: "fsa-hud-top__title", text: "Five Safes Archipelago" }),
     el("div", { class: "fsa-hud-top__disclosure", text: SCALED_TIME_DISCLOSURE }),
-    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, gatesButton, orbitButton, nightButton, helpButton),
+    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, yourProjectButton, gatesButton, orbitButton, nightButton, helpButton),
   );
   root.append(bar);
 

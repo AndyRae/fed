@@ -96,6 +96,22 @@ no real data exists in this simulation"), and the crate's `content` field is
 set once at seal time and never altered afterwards, matching honesty rule 4:
 the safe output check decides, it never transforms.
 
+The interactive "create your own project" journey (`src/ui/projectForm.ts`,
+`buildYourProjectTour` in `src/ui/tours.ts`) extends this same illustrative
+approach rather than departing from it: when a visitor picks one of three
+named statistical tests (Pearson's correlation, Fisher's exact, chi-squared),
+`generateAnalysisCrateContent` invents plausible-looking numbers shaped like
+that test's real output — a correlation coefficient, a contingency table,
+a chi-squared statistic — deterministically from the visitor's own project
+title, but still never computed from any real data. This content is always
+`AGGREGATE`, which is substantively true of these three tests (they are
+themselves cohort-level statistics), not a convenience. This journey also
+always approves at the safe people/safe project check and always releases at
+the safe output check, the same scripted-happy-path precedent
+`journeyOfATaskTour` already sets — refusal remains a first-class path,
+shown by "The result that never left" and the ambient demo's own real
+refusal rate, not by this journey.
+
 The reference implementation's documented Egress service
 (`/five_safes_tes/reference_implementation/core_components`) is
 described as a single centralized component rather than one per TRE.

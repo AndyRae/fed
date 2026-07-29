@@ -1,3 +1,6 @@
+import type { AnalysisType, TaskAnalysis } from "../core/types.ts";
+import { ANALYSIS_TYPES, STUDY_AREAS } from "../sim/analysisCatalog.ts";
+import { generateAnalysisCrateContent, hashSeedKey } from "../sim/crateContent.ts";
 import { createInitialSimState } from "../sim/sim.ts";
 import type { Tour } from "./tourTypes.ts";
 
@@ -412,3 +415,173 @@ export const theFiveSafesTour: Tour = {
     },
   ],
 };
+
+const YOUR_PROJECT_TRE = { id: "tre-a", name: "Isle of Mingulay" };
+
+/** What the interactive "create your own project" journey collects from a visitor before it builds a tour — see `src/ui/projectForm.ts`. */
+export interface YourProjectInput {
+  readonly title: string;
+  readonly areaId: string;
+  readonly analysisType: AnalysisType;
+}
+
+function slugifyTitle(title: string): string {
+  const slug = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug.length > 0 ? slug : "your-project";
+}
+
+/**
+ * Builds a fresh Tour from a visitor's own choices, rather than one written
+ * out by hand — the interactive "create your own project" journey (see
+ * `src/ui/projectForm.ts`). Every stop is still the ordinary TourStop shape
+ * the tour player, tour card, and transcript mode already know how to run:
+ * no engine or player code needed to add this. See CLAUDE.md "Tour
+ * mechanism" — this is still tour data, just assembled from a template
+ * instead of authored statically like the three tours above.
+ *
+ * Always approves at Gate 1 and always releases at Gate 2 — the same
+ * on-rails precedent journeyOfATaskTour already sets. The point of this
+ * journey is to let a visitor feel the whole happy path with their own
+ * choices in one sitting; refusal is still a first-class path elsewhere
+ * (theResultThatNeverLeftTour, and the ambient demo's own real refusal
+ * rate), and both gate stops say so in their technical detail.
+ */
+export function buildYourProjectTour(input: YourProjectInput): Tour {
+  const area = STUDY_AREAS.find((a) => a.id === input.areaId) ?? STUDY_AREAS[0]!;
+  const analysisInfo = ANALYSIS_TYPES.find((a) => a.id === input.analysisType) ?? ANALYSIS_TYPES[0]!;
+  const title = input.title.trim().length > 0 ? input.title.trim() : "Untitled Study";
+  const projectId = `proj-yours-${slugifyTitle(title)}`;
+  const taskId = "task-1";
+  const crateId = `crate-${taskId}`;
+  const treId = YOUR_PROJECT_TRE.id;
+  const treName = YOUR_PROJECT_TRE.name;
+
+  // Derived from the title itself, unlike the fixed tours above (which use
+  // a fixed seed) — so two visitors who pick different titles genuinely see
+  // different illustrative numbers, while the same title always replays
+  // identically. See CLAUDE.md "Simulation model": determinism is per seed,
+  // not a single global constant.
+  const seed = hashSeedKey(title) % 100000;
+  const analysis: TaskAnalysis = { type: analysisInfo.id, variableA: area.variableA, variableB: area.variableB };
+  // Computed now, using the exact seed key tick() will independently derive
+  // at seal time (`${seed}:${taskId}`), so the final stop's narration can
+  // quote the visitor's real generated result rather than a generic
+  // placeholder that might not match what actually gets sealed.
+  const previewContent = generateAnalysisCrateContent(`${seed}:${taskId}`, analysis);
+
+  return {
+    id: "your-project",
+    title: `Your project: ${title}`,
+    createInitialState: () => createInitialSimState({ seed, tres: [YOUR_PROJECT_TRE], pollIntervalTicks: 2 }),
+    stops: [
+      {
+        id: "submit-project",
+        title: "You submit your project",
+        cameraPose: { kind: "mainland" },
+        focusEntity: { kind: "project", projectId },
+        narration: {
+          plain: `You submit "${title}" — a ${area.label.toLowerCase()} study — to ${treName}, from the researcher's quay.`,
+          detail: `submitProject creates a Project named "${title}" with researcher "You" and one PENDING ProjectApproval, targeting ${treId}.`,
+        },
+        simDirective: {
+          kind: "submitProject",
+          params: { id: projectId, name: title, researcher: "You", targetTreIds: [treId] },
+        },
+      },
+      {
+        id: "submit-task",
+        title: "Your analysis travels too",
+        cameraPose: { kind: "mainland" },
+        focusEntity: { kind: "task", taskId },
+        narration: {
+          plain: `You also hand over the actual piece of work: a ${analysisInfo.label} comparing ${area.variableA} and ${area.variableB}.`,
+          detail: `submitTask creates a TES task in AWAITING_PROJECT_APPROVAL, carrying analysis type ${analysisInfo.id}. ${analysisInfo.plain}`,
+        },
+        simDirective: {
+          kind: "submitTask",
+          params: { id: taskId, projectId, treId, analysis },
+        },
+      },
+      {
+        id: "gate-1-approval",
+        title: "Safe people, safe project",
+        cameraPose: { kind: "treGate1", treId },
+        focusEntity: { kind: "tre", treId },
+        narration: {
+          plain: `The harbourmaster of ${treName} checks the people and the project together, and approves it.`,
+          detail:
+            "decideProjectApproval(APPROVED) — the safe people/safe project check (Gate 1, internally). This walkthrough always approves so you can see the whole path in one go; a real harbourmaster can and does say no — see \"The result that never left\" for a refusal.",
+        },
+        simDirective: {
+          kind: "decideProjectApproval",
+          params: { projectId, treId, decision: "APPROVED", decidedBy: `Harbourmaster of ${treName}` },
+        },
+      },
+      {
+        id: "ferry-collects",
+        title: "The ferry collects",
+        cameraPose: { kind: "sea", treId },
+        focusEntity: { kind: "task", taskId },
+        narration: {
+          plain:
+            "The island's own ferry leaves, collects your approved container, and returns. Nothing ever enters the island by any other route.",
+          detail: "tick() advances until the TRE agent's poll interval elapses: AWAITING_PROJECT_APPROVAL → QUEUED.",
+        },
+        simDirective: { kind: "tick", ticks: 2 },
+      },
+      {
+        id: "workshop-executes",
+        title: "The workshop runs your analysis",
+        cameraPose: { kind: "treWorkshop", treId },
+        focusEntity: { kind: "task", taskId },
+        narration: {
+          plain: `Inside the wall, the workshop starts your ${analysisInfo.label} and runs it against the island's own data — none of which ever leaves.`,
+          detail: "Two ticks: QUEUED → INITIALIZING → RUNNING, the GA4GH TES executor states, verbatim.",
+        },
+        simDirective: { kind: "tick", ticks: 2 },
+      },
+      {
+        id: "sealed-crate",
+        title: "Your result is sealed",
+        cameraPose: { kind: "treWorkshop", treId },
+        focusEntity: { kind: "crate", crateId },
+        narration: {
+          plain: "Your analysis finishes and is sealed into a crate. Nothing is released yet.",
+          detail:
+            "RUNNING → COMPLETE → AWAITING_OUTPUT_REVIEW. A Crate is sealed in HELD status, shaped like the analysis you actually chose — see generateAnalysisCrateContent in src/sim/crateContent.ts.",
+        },
+        simDirective: { kind: "tick", ticks: 2 },
+      },
+      {
+        id: "gate-2-review",
+        title: "Safe output",
+        cameraPose: { kind: "treCustoms", treId },
+        focusEntity: { kind: "crate", crateId },
+        narration: {
+          plain: "This island's own customs inspector checks your result and decides it's a safe output.",
+          detail:
+            "decideOutputReview(RELEASED) — the safe output check (Gate 2, internally). This walkthrough always releases, for the same reason it always approves at Gate 1: refusal is real, and shown elsewhere.",
+        },
+        simDirective: {
+          kind: "decideOutputReview",
+          params: { crateId, decision: "RELEASED" },
+        },
+      },
+      {
+        id: "results-at-the-quay",
+        title: "Your result arrives",
+        cameraPose: { kind: "mainland" },
+        focusEntity: { kind: "crate", crateId },
+        narration: {
+          plain: `Back at the quay, your result has arrived: ${previewContent.summary}`,
+          detail: `${previewContent.rows.join("; ")}. Illustrative example — no real data exists in this simulation; see SIMPLIFICATIONS.md.`,
+        },
+        simDirective: { kind: "none" },
+      },
+    ],
+  };
+}

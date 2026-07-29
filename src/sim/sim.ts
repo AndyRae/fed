@@ -7,13 +7,14 @@ import {
   type ProjectId,
   type SimEvent,
   type SimState,
+  type TaskAnalysis,
   type TaskId,
   type TaskStatus,
   type TesTask,
   type Tre,
   type TreId,
 } from "../core/types.ts";
-import { generateCrateContent } from "./crateContent.ts";
+import { generateAnalysisCrateContent, generateCrateContent } from "./crateContent.ts";
 import { getApproval, getCrate, getTask } from "./selectors.ts";
 
 const DEFAULT_POLL_INTERVAL_TICKS = 5;
@@ -146,6 +147,8 @@ export interface SubmitTaskParams {
   readonly id: TaskId;
   readonly projectId: ProjectId;
   readonly treId: TreId;
+  /** What this task's analysis is about, if known — see TaskAnalysis. Shapes the sealed crate's eventual content; omitted by the ambient demo and the fixed launch tours, which keep the existing generic illustrative content. */
+  readonly analysis?: TaskAnalysis;
 }
 
 export function submitTask(state: SimState, params: SubmitTaskParams): SimState {
@@ -170,6 +173,7 @@ export function submitTask(state: SimState, params: SubmitTaskParams): SimState 
     status: initialStatus,
     createdAtTick: state.tick,
     history: [{ status: initialStatus, atTick: state.tick }],
+    ...(params.analysis ? { analysis: params.analysis } : {}),
   };
 
   let next: SimState = { ...state, tasks: [...state.tasks, task] };
@@ -284,7 +288,9 @@ function tickOnce(state: SimState): SimState {
           status: "HELD",
           createdAtTick: newTick,
           decidedAtTick: null,
-          content: generateCrateContent(`${state.seed}:${task.id}`),
+          content: task.analysis
+            ? generateAnalysisCrateContent(`${state.seed}:${task.id}`, task.analysis)
+            : generateCrateContent(`${state.seed}:${task.id}`),
         };
         next = { ...next, crates: [...next.crates, crate] };
         next = appendEvent(next, { type: "CRATE_SEALED", tick: newTick, crateId: crate.id, taskId: task.id });

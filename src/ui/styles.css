@@ -709,6 +709,142 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   border-color: #4fc3c7;
 }
 
+/* ----------------------------- project form -------------------------------- */
+/* The "create your own project" journey's one-shot input modal — see
+   src/ui/projectForm.ts. Structurally the same dialog pattern as
+   .fsa-help-overlay/.fsa-help, but mounted only while it exists (no
+   persistent is-open toggle to manage) since the form is disposed the
+   moment it's submitted or cancelled. */
+
+.fsa-project-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 9, 13, 0.6);
+}
+
+.fsa-project-form {
+  position: relative;
+  font-family: var(--fsa-font);
+  color: var(--fsa-ink);
+  background: var(--fsa-bg-panel);
+  border: 1px solid var(--fsa-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  width: min(480px, 100%);
+  max-height: min(88vh, 760px);
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.fsa-project-form__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 2px 7px;
+  line-height: 1;
+}
+
+.fsa-project-form__heading {
+  margin: 0 24px 8px 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.fsa-project-form__intro {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-project-form__field-label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-project-form__title-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--fsa-ink);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--fsa-line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+.fsa-project-form__title-input:focus-visible {
+  outline: 2px solid var(--fsa-gate-amber, #d99a2b);
+  outline-offset: 1px;
+}
+
+.fsa-project-form__error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #e07a7a;
+}
+.fsa-project-form__error:empty {
+  display: none;
+}
+
+.fsa-project-form__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fsa-project-form__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--fsa-line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fsa-project-form__option:has(input:checked) {
+  background: rgba(217, 154, 43, 0.14);
+  border-color: var(--fsa-gate-amber, #d99a2b);
+}
+.fsa-project-form__option input {
+  margin-top: 2px;
+}
+
+.fsa-project-form__option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fsa-project-form__option-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fsa-project-form__option-plain {
+  font-size: 12px;
+  color: var(--fsa-ink-faint);
+}
+
+.fsa-project-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fsa-line);
+}
+
 /* --------------------------------- mobile ---------------------------------- */
 
 /* Below this width the top bar's title + disclosure + tour buttons no
@@ -753,7 +889,8 @@ body.fsa-touring #fsa-stats-panel:focus-within {
     width: calc(100% - 20px);
   }
 
-  .fsa-help-overlay {
+  .fsa-help-overlay,
+  .fsa-project-form-overlay {
     padding: 12px;
   }
   .fsa-help__row {

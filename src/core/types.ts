@@ -133,6 +133,23 @@ export interface TaskStatusChange {
   readonly atTick: number;
 }
 
+/**
+ * A statistical analysis a researcher can ask a task to run — one of the
+ * three offered by the interactive "create your own project" journey (see
+ * `src/ui/projectForm.ts` and `buildYourProjectTour` in `src/ui/tours.ts`).
+ * Every value here is a real, named statistical test; this is illustrative
+ * of what kind of analysis a container runs, never a claim that this model
+ * actually computes it — see SIMPLIFICATIONS.md.
+ */
+export type AnalysisType = "PEARSON_CORRELATION" | "FISHERS_EXACT" | "CHI_SQUARED";
+
+/** What a task's analysis is actually about, so the sealed crate it eventually produces can be shaped like a real result rather than a generic one — see `src/sim/crateContent.ts`'s `generateAnalysisCrateContent`. Optional: most tasks (the ambient demo, the fixed launch tours) carry no analysis and get the existing illustrative-example content instead. */
+export interface TaskAnalysis {
+  readonly type: AnalysisType;
+  readonly variableA: string;
+  readonly variableB: string;
+}
+
 export interface TesTask {
   readonly id: TaskId;
   readonly projectId: ProjectId;
@@ -140,6 +157,7 @@ export interface TesTask {
   readonly status: TaskStatus;
   readonly createdAtTick: number;
   readonly history: readonly TaskStatusChange[];
+  readonly analysis?: TaskAnalysis;
 }
 
 /** Gate 2: the customs inspector's decision on a sealed crate. */

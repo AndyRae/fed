@@ -6,6 +6,41 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## Create your own project
+
+A new HUD button, "📝 Create your own project", opens a form asking a
+visitor for three real choices — a project title, one of three study areas
+(Cardiovascular, Diabetes, Respiratory), and one of three named analyses
+(Pearson's correlation, Fisher's exact test, chi-squared test) — then builds
+a fresh tour from those choices and hands it to the same tour player every
+fixed launch tour already runs on (`buildYourProjectTour` in
+`src/ui/tours.ts`, form in `src/ui/projectForm.ts`). The journey itself is
+otherwise on rails, same precedent as *the journey of a task*: submit,
+Gate 1 approves, the ferry collects, the workshop runs, a crate seals,
+Gate 2 releases, and a final stop shows the visitor's own result arriving at
+the quay.
+
+The payoff is real, not decorative: `TesTask` gained an optional `analysis`
+field (`{ type, variableA, variableB }`, threaded through `submitTask` and
+carried to seal time in `tick()`), and `generateAnalysisCrateContent` (`src/
+sim/crateContent.ts`) invents a plausible-looking result shaped like the
+chosen test — a Pearson's r and p-value, a 2×2 contingency table with any
+cell under 5 suppressed, a χ² statistic and degrees of freedom — always
+`AGGREGATE`, since all three tests are themselves cohort-level statistics.
+The tour builder computes this content once, with the exact seed key `tick()`
+will independently derive, and quotes it verbatim in the final stop's
+narration, so what a visitor reads always matches what the sim actually
+sealed. The numbers are seeded from the visitor's own title (not a fixed
+constant like the other tours), so two different titles genuinely see
+different results while the same title always replays identically.
+
+Both gates always say yes in this journey specifically so a visitor can see
+the whole path in one sitting — refusal remains real and first-class
+elsewhere (*the result that never left*, and the ambient demo's own refusal
+rate), and both gate stops' technical detail says so explicitly rather than
+leaving a visitor to conclude gates are theatrical from this one experience
+alone. See SIMPLIFICATIONS.md for the full disclosure.
+
 ## A calmer, animated sea
 
 The sea's static baked swell is now a gentle, always-animated one: three

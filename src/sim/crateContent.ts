@@ -1,4 +1,4 @@
-import type { CrateContent } from "../core/types.ts";
+import type { CrateContent, TaskAnalysis } from "../core/types.ts";
 import { createRng } from "./rng.ts";
 
 /**
@@ -90,7 +90,8 @@ const ROW_LEVEL_EXAMPLES: readonly CrateContent[] = [
   },
 ] as const;
 
-function hashSeedKey(seedKey: string): number {
+/** Exported so callers outside this module (the interactive tour builder, see `src/ui/tours.ts`) can derive the same numeric seed from a string — e.g. turning a visitor's own project title into a SimState seed — without duplicating this hash. */
+export function hashSeedKey(seedKey: string): number {
   let hash = 0;
   for (let i = 0; i < seedKey.length; i++) {
     hash = (hash * 31 + seedKey.charCodeAt(i)) | 0;
@@ -109,4 +110,79 @@ export function generateCrateContent(seedKey: string): CrateContent {
   const pool = rng() < 0.5 ? AGGREGATE_EXAMPLES : ROW_LEVEL_EXAMPLES;
   const index = Math.floor(rng() * pool.length);
   return pool[Math.min(index, pool.length - 1)]!;
+}
+
+/** Suppresses a small cell count rather than printing it — the same discipline a real safe-output check applies before release, not something this illustrative example gets to skip just because it's always released. */
+function formatSuppressibleCount(n: number): string {
+  return n < 5 ? "suppressed (<5)" : String(n);
+}
+
+/**
+ * Generates illustrative content shaped like the real statistical test a
+ * visitor actually chose, for the interactive "create your own project"
+ * journey (see `src/ui/tours.ts`'s `buildYourProjectTour`). Deterministic
+ * per seed key like `generateCrateContent`, and always `AGGREGATE`: a
+ * Pearson correlation, a Fisher's exact test, and a chi-squared test are
+ * themselves aggregate/cohort-level statistics, never a per-person listing,
+ * so labelling them AGGREGATE is substantively true rather than a
+ * convenient default. The numbers are invented for this seed key, not
+ * computed from any real data — see SIMPLIFICATIONS.md.
+ */
+export function generateAnalysisCrateContent(seedKey: string, analysis: TaskAnalysis): CrateContent {
+  const rng = createRng(hashSeedKey(seedKey));
+  const { type, variableA, variableB } = analysis;
+
+  switch (type) {
+    case "PEARSON_CORRELATION": {
+      const n = 200 + Math.floor(rng() * 1800);
+      const r = Number((rng() * 1.4 - 0.7).toFixed(2));
+      const p = (0.001 + rng() * 0.05).toFixed(3);
+      return {
+        kind: "AGGREGATE",
+        summary: `Pearson correlation between ${variableA} and ${variableB} — an aggregate statistic describing the whole cohort, not one person.`,
+        rows: [
+          `Cohort size (n): ${n}`,
+          `Pearson's r (${variableA} vs ${variableB}): ${r}`,
+          `p-value: ${p}`,
+        ],
+      };
+    }
+    case "FISHERS_EXACT": {
+      const a = 2 + Math.floor(rng() * 55);
+      const b = 2 + Math.floor(rng() * 55);
+      const c = 2 + Math.floor(rng() * 55);
+      const d = 2 + Math.floor(rng() * 55);
+      const oddsRatio = Number(((a * d) / (b * c)).toFixed(2));
+      const p = (0.001 + rng() * 0.08).toFixed(3);
+      return {
+        kind: "AGGREGATE",
+        summary: `Fisher's exact test on ${variableA} and ${variableB} — aggregate counts only, with any small cell suppressed.`,
+        rows: [
+          `2×2 contingency table — ${variableA} × ${variableB}`,
+          `Group A, outcome present: ${formatSuppressibleCount(a)}`,
+          `Group A, outcome absent: ${formatSuppressibleCount(b)}`,
+          `Group B, outcome present: ${formatSuppressibleCount(c)}`,
+          `Group B, outcome absent: ${formatSuppressibleCount(d)}`,
+          `Odds ratio: ${oddsRatio}`,
+          `p-value (Fisher's exact): ${p}`,
+        ],
+      };
+    }
+    case "CHI_SQUARED": {
+      const n = 150 + Math.floor(rng() * 2500);
+      const df = 1 + Math.floor(rng() * 3);
+      const chiSquared = Number((0.5 + rng() * 15).toFixed(2));
+      const p = (0.001 + rng() * 0.07).toFixed(3);
+      return {
+        kind: "AGGREGATE",
+        summary: `Chi-squared test of independence between ${variableA} and ${variableB} — an aggregate statistic describing the whole cohort, not one person.`,
+        rows: [
+          `Cohort size (n): ${n}`,
+          `χ² statistic: ${chiSquared}`,
+          `Degrees of freedom: ${df}`,
+          `p-value: ${p}`,
+        ],
+      };
+    }
+  }
 }

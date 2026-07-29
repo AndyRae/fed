@@ -44,6 +44,7 @@ const SECTIONS: readonly ControlSection[] = [
     rows: [
       { keys: ["Click"], description: "Select an entity — open the inspector and see what it represents" },
       { keys: ["⚖"], description: "Take manual control of both gates — then click the harbourmaster or the customs inspector to decide a pending case yourself" },
+      { keys: ["📝"], description: "Create your own project — pick a title, an area, and an analysis, then follow it on rails to a real result" },
     ],
   },
   {

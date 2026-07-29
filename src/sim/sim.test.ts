@@ -127,6 +127,14 @@ describe("submitTask", () => {
     state = submitProject(state, { id: "p1", name: "A", researcher: "R", targetTreIds: ["tre-a"] });
     expect(() => submitTask(state, { id: "t1", projectId: "p1", treId: "tre-b" })).toThrow();
   });
+
+  it("carries an optional analysis through to the task it creates", () => {
+    let state = twoIslandWorld();
+    state = submitProject(state, { id: "p1", name: "A", researcher: "R", targetTreIds: ["tre-a"] });
+    const analysis = { type: "PEARSON_CORRELATION" as const, variableA: "BMI", variableB: "blood pressure" };
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a", analysis });
+    expect(getTask(state, "t1")?.analysis).toEqual(analysis);
+  });
 });
 
 describe("the queue holds until a decision lands (honesty rule 3)", () => {
@@ -184,6 +192,24 @@ describe("the journey of a task", () => {
 
     state = tick(state, 200);
     expect(getTask(state, "t1")?.status).toBe("AWAITING_OUTPUT_REVIEW");
+  });
+
+  it("seals a crate shaped like the task's own analysis, when one is given", () => {
+    let state = twoIslandWorld();
+    state = submitProject(state, { id: "p1", name: "A", researcher: "R", targetTreIds: ["tre-a"] });
+    state = submitTask(state, {
+      id: "t1",
+      projectId: "p1",
+      treId: "tre-a",
+      analysis: { type: "CHI_SQUARED", variableA: "HbA1c", variableB: "adherence" },
+    });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 7);
+
+    const crate = getCrateForTask(state, "t1");
+    expect(crate?.content.kind).toBe("AGGREGATE");
+    expect(crate?.content.summary).toContain("HbA1c");
+    expect(crate?.content.rows.join(" ")).toMatch(/χ² statistic/);
   });
 });
 
