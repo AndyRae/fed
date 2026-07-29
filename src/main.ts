@@ -705,11 +705,95 @@ const hud = mountHud(document.body, {
 // for a single boolean.
 hud.setOrbitActive(orbitEnabled);
 
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+}
+
 window.addEventListener("keydown", (event) => {
   if (event.key !== "?") return;
-  const target = event.target as HTMLElement | null;
-  if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+  if (isTypingTarget(event.target)) return;
   helpOverlay.toggle();
+});
+
+// --- Vim-style camera keybindings (IDEAS.md "Vim-style camera keybindings") ---
+//
+// hjkl for orbit (left/down/up/right) and +/- for zoom: a keyboard-only path
+// to the exact same orbit/zoom OrbitControls' own RMB-drag and wheel already
+// do — not a new fly/walk mode, just an alternate input for the existing
+// one. Held keys move the camera continuously (frame-by-frame, scaled by
+// deltaSeconds) rather than a single nudge per press, so it feels like the
+// same drag/wheel gesture rather than a series of jumps.
+
+type CameraKeyAction = "orbit-left" | "orbit-right" | "orbit-up" | "orbit-down" | "zoom-in" | "zoom-out";
+
+function cameraKeyAction(key: string): CameraKeyAction | null {
+  switch (key.toLowerCase()) {
+    case "h":
+      return "orbit-left";
+    case "l":
+      return "orbit-right";
+    case "k":
+      return "orbit-up";
+    case "j":
+      return "orbit-down";
+    case "+":
+    case "=":
+      return "zoom-in";
+    case "-":
+    case "_":
+      return "zoom-out";
+    default:
+      return null;
+  }
+}
+
+const KEY_ORBIT_RADIANS_PER_SECOND = 1.1;
+const KEY_ZOOM_SCALE_PER_SECOND = 1.7;
+
+const heldCameraActions = new Set<CameraKeyAction>();
+
+window.addEventListener("keydown", (event) => {
+  if (isTypingTarget(event.target)) return;
+  const action = cameraKeyAction(event.key);
+  if (action) heldCameraActions.add(action);
+});
+window.addEventListener("keyup", (event) => {
+  const action = cameraKeyAction(event.key);
+  if (action) heldCameraActions.delete(action);
+});
+// A held key can outlive the element that was focused when it was pressed
+// (e.g. the project form closing mid-hold) — clearing on blur means a key
+// that's physically still down but no longer reaching this page doesn't
+// leave the camera drifting forever.
+window.addEventListener("blur", () => heldCameraActions.clear());
+
+engine.onBeforeRender((deltaSeconds) => {
+  if (heldCameraActions.size === 0) return;
+  // Never fight a tour's own camera control — cameraRig.controls.enabled is
+  // exactly what startTour/onExit already toggle for mouse/wheel input, so
+  // the keyboard path respects the same gate.
+  if (!cameraRig.controls.enabled) return;
+
+  const orbitStep = KEY_ORBIT_RADIANS_PER_SECOND * deltaSeconds;
+  let deltaAzimuth = 0;
+  let deltaPolar = 0;
+  if (heldCameraActions.has("orbit-left")) deltaAzimuth -= orbitStep;
+  if (heldCameraActions.has("orbit-right")) deltaAzimuth += orbitStep;
+  if (heldCameraActions.has("orbit-up")) deltaPolar -= orbitStep;
+  if (heldCameraActions.has("orbit-down")) deltaPolar += orbitStep;
+  if (deltaAzimuth !== 0 || deltaPolar !== 0) cameraRig.orbitBy(deltaAzimuth, deltaPolar);
+
+  let dollyScale = 1;
+  if (heldCameraActions.has("zoom-in")) dollyScale /= Math.pow(KEY_ZOOM_SCALE_PER_SECOND, deltaSeconds);
+  if (heldCameraActions.has("zoom-out")) dollyScale *= Math.pow(KEY_ZOOM_SCALE_PER_SECOND, deltaSeconds);
+  if (dollyScale !== 1) cameraRig.dollyBy(dollyScale);
+
+  // The same "real interaction always wins" rule handleUserCameraTakeover
+  // already applies to a mouse drag — OrbitControls' own 'start' event never
+  // fires for this direct position mutation, so this is the keyboard path's
+  // own equivalent call.
+  handleUserCameraTakeover();
 });
 
 /** The browser debugging surface — see CLAUDE.md "Architecture". Event bus is still the one piece not built yet. */

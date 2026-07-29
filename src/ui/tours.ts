@@ -95,13 +95,15 @@ export const journeyOfATaskTour: Tour = {
       simDirective: { kind: "tick", ticks: 2 },
     },
     {
-      id: "workshop-executes",
-      title: "The workshop executes",
-      cameraPose: { kind: "treWorkshop", treId: "tre-a" },
-      focusEntity: { kind: "task", taskId: "task-1" },
+      id: "the-vault-holds-still",
+      title: "The vault holds still",
+      cameraPose: { kind: "treVault", treId: "tre-a" },
+      focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
-        plain: "Inside the wall, the workshop starts the container and runs it.",
-        detail: "Two further ticks: QUEUED → INITIALIZING → RUNNING, the GA4GH TES executor states, verbatim.",
+        plain:
+          "The ferry that just crossed the wall has already returned, and what it collected is now running in the workshop right beside you. Watch the vault itself, here at the island's centre: through all of it, it has not moved, and it never will.",
+        detail:
+          "Two ticks, same as before: QUEUED → INITIALIZING → RUNNING, the GA4GH TES executor states, verbatim — only the camera has moved, from the workshop to the vault beside it. Honesty rule 2: nothing whose origin is the vault ever boards a ferry, crosses a wall, or appears on the mainland. See engine/flowController.ts's compute glow — the vault and the workshop light up together while this task is RUNNING, a synchronised pair of stationary rings, never a beam or a particle between them; only the workshop's own output, never the vault's contents, goes on to become a sealed crate.",
       },
       simDirective: { kind: "tick", ticks: 2 },
     },

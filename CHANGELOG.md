@@ -6,6 +6,41 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## Vim-style camera keybindings
+
+`hjkl` now orbit the free-roam camera left/down/up/right, and `+`/`-` zoom
+in/out — a keyboard-only path to the exact same orbit (RMB-drag) and zoom
+(wheel) `OrbitControls` already offers, not a new fly/walk mode (see
+`helpOverlay.ts`'s own long-standing "no walk mode, no fly camera, no WASD"
+line, which stays true). The math is pure and unit-tested independently of
+any WebGL context — `src/engine/cameraOrbitMath.ts`'s `orbitPosition`/
+`dollyPosition`, same "pure math, no renderer" precedent as
+`cameraTween.ts` — and `cameraRig.ts` gained thin `orbitBy`/`dollyBy`
+wrappers around it, clamped to the exact same min/max polar angle and
+distance a drag or wheel already respects. Held keys move the camera
+continuously frame-by-frame rather than jumping per keypress, and pressing
+any of them turns off the gently orbiting overview camera exactly like a
+real drag already does ("real interaction always wins"). Guarded against
+typing in a text field (the project-title input, chiefly) the same way the
+existing `?` help shortcut already is, and against fighting a tour's own
+camera control. `helpOverlay.ts`'s Camera section documents the new keys.
+
+## Give the vault a real moment in the flagship tour
+
+*The journey of a task*'s "workshop executes" stop is now "the vault holds
+still": the camera moves from the workshop to the vault beside it for the
+same two ticks (QUEUED → INITIALIZING → RUNNING) that stop already advanced
+— a camera-dwell and narration change to `tours.ts`, not a new tick or new
+geometry. The plain register says outright that the vault has not moved and
+never will; the technical register names honesty rule 2 and points at
+`flowController.ts`'s compute glow, the synchronised vault/workshop ring
+pair that's real for this entire stop's dwell, not asserted by the caption.
+"The data never moves" is the single most load-bearing claim this whole
+world makes, and previously no tour actually lingered on it — the flagship
+tour passed the vault only incidentally on the way to the workshop, and
+*the five safes* touched it for one stop among five. This gives it a
+genuine, dedicated moment in the tour most visitors actually take.
+
 ## Create your own project
 
 A new HUD button, "📝 Create your own project", opens a form asking a

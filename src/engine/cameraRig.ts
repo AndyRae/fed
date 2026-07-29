@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { Vec3 } from "../world/layout.ts";
+import { dollyPosition, orbitPosition } from "./cameraOrbitMath.ts";
 import { interpolatePose } from "./cameraTween.ts";
 import type { Engine } from "./renderer.ts";
 
@@ -33,6 +34,22 @@ export interface CameraRig {
    * CLAUDE.md "Visual language".
    */
   flyTo(pose: CameraPoseVec, durationSeconds: number): void;
+  /**
+   * Nudges the free-roam camera around its current target by a small orbit
+   * angle — the keyboard path (main.ts's hjkl handling) to the same orbit
+   * RMB-drag already does, clamped to the same minPolarAngle/maxPolarAngle
+   * a drag already respects. See src/engine/cameraOrbitMath.ts for the pure
+   * math this wraps.
+   */
+  orbitBy(deltaAzimuthRadians: number, deltaPolarRadians: number): void;
+  /**
+   * Nudges the free-roam camera's distance from its target by a
+   * multiplicative scale factor (>1 zooms out, <1 zooms in) — the keyboard
+   * path (main.ts's +/- handling) to the same zoom the wheel already does,
+   * clamped to the same minDistance/maxDistance a wheel-zoom already
+   * respects.
+   */
+  dollyBy(scaleFactor: number): void;
 }
 
 function vec3From(v: THREE.Vector3): Vec3 {
@@ -119,5 +136,24 @@ export function createCameraRig(engine: Engine): CameraRig {
     cancelFlight = unsubscribe;
   }
 
-  return { controls, getPose, setPose, flyTo };
+  function orbitBy(deltaAzimuthRadians: number, deltaPolarRadians: number): void {
+    const next = orbitPosition(
+      vec3From(engine.camera.position),
+      vec3From(controls.target),
+      deltaAzimuthRadians,
+      deltaPolarRadians,
+      controls.minPolarAngle,
+      controls.maxPolarAngle,
+    );
+    engine.camera.position.set(next.x, next.y, next.z);
+    controls.update();
+  }
+
+  function dollyBy(scaleFactor: number): void {
+    const next = dollyPosition(vec3From(engine.camera.position), vec3From(controls.target), scaleFactor, controls.minDistance, controls.maxDistance);
+    engine.camera.position.set(next.x, next.y, next.z);
+    controls.update();
+  }
+
+  return { controls, getPose, setPose, flyTo, orbitBy, dollyBy };
 }

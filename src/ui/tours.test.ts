@@ -24,11 +24,23 @@ describe("the journey of a task (flagship tour)", () => {
     expect(statusByStopId.get("submit-task")).toBe("AWAITING_PROJECT_APPROVAL");
     expect(statusByStopId.get("gate-1-approval")).toBe("AWAITING_PROJECT_APPROVAL"); // approved, but the ferry hasn't polled yet
     expect(statusByStopId.get("ferry-collects")).toBe("QUEUED");
-    expect(statusByStopId.get("workshop-executes")).toBe("RUNNING");
+    expect(statusByStopId.get("the-vault-holds-still")).toBe("RUNNING");
     expect(statusByStopId.get("sealed-crate")).toBe("AWAITING_OUTPUT_REVIEW");
     expect(statusByStopId.get("gate-2-review")).toBe("RELEASED");
     expect(statusByStopId.get("release")).toBe("RELEASED");
     expect(statusByStopId.get("aggregation-at-the-quay")).toBe("RELEASED");
+  });
+
+  it("holds the camera on the vault specifically while the workshop is running — a dedicated moment, not incidental", () => {
+    const vaultStop = journeyOfATaskTour.stops.find((s) => s.id === "the-vault-holds-still")!;
+    expect(vaultStop.cameraPose).toEqual({ kind: "treVault", treId: "tre-a" });
+    expect(vaultStop.narration.plain.toLowerCase()).toContain("vault");
+    expect(vaultStop.narration.plain).toMatch(/has not moved|never will/);
+    expect(vaultStop.narration.detail).toMatch(/honesty rule 2/i);
+
+    const run = playTour(journeyOfATaskTour);
+    const vaultStopState = run.stops.find((s) => s.stop.id === "the-vault-holds-still")!.state;
+    expect(getTask(vaultStopState, "task-1")?.status).toBe("RUNNING");
   });
 
   it("seals exactly one HELD crate before Gate 2, then releases it", () => {

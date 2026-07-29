@@ -27,41 +27,6 @@ A quiet one-time toast the first time a visitor spots the whale, or finds
 a refused project, or opens night mode — small delight, cheap to build,
 rewards exploring free-roam instead of only tour-hopping.
 
-## Navigation
-
-### Vim-style camera keybindings
-
-There's currently no keyboard camera control at all — `helpOverlay.ts`
-says so explicitly ("no walk mode, no fly camera, no WASD, none of that is
-implemented here"), and the camera is mouse-only `OrbitControls` (drag to
-orbit, wheel to zoom, right-drag to pan). `hjkl` for orbit (left/down/up/
-right), plus a couple of keys for zoom, would give a keyboard-only path to
-the same orbit/zoom the mouse already does — not a new fly/walk mode, just
-an alternate input for the existing one. Cheap, self-contained
-(`cameraRig.ts` already owns the `OrbitControls` instance), and doubles as
-a real accessibility win alongside being one visitor's own preference.
-Would need `helpOverlay.ts`'s controls list updated in the same change,
-since its "none of it is implemented" line would otherwise go stale.
-
-## The vault deserves more presence
-
-### Give the vault a real moment in the flagship tour
-
-"The data never moves" is the single most important claim this whole world
-makes, and honesty rule 2 already requires the vault to emit nothing — but
-no tour actually lingers on it. *The journey of a task* passes near the
-vault only incidentally on the way to the workshop; *the five safes* touches
-it for one stop among five. The vault should be a genuine focal point of the
-flagship tour, not a scenic backdrop: a stop that holds the camera on it
-specifically *while the ferry is out and the workshop is running*, so the
-contrast is the point — everything else in frame is moving (ferry crossing
-the wall outward, containers boarding, the workshop's own compute glow) and
-the vault, deliberately, is the one thing that visibly never does. The
-narration's plain register can say this outright ("data has not moved this
-whole time"); the detail register can point at honesty rule 2 by name. Worth
-doing without a new tour or new geometry — this is a stop re-ordering and a
-camera-dwell change to `tours.ts`, not a new feature.
-
 ## Characters
 
 ### Cuddly characters for the four human roles

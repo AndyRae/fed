@@ -37,6 +37,8 @@ const SECTIONS: readonly ControlSection[] = [
       { keys: ["Wheel"], description: "Zoom toward the cursor" },
       { keys: ["1 finger"], description: "Orbit around the world" },
       { keys: ["2 fingers"], description: "Pinch to zoom · drag to pan" },
+      { keys: ["h", "j", "k", "l"], description: "Orbit left / down / up / right — a keyboard path to the same orbit RMB drag already does" },
+      { keys: ["+", "-"], description: "Zoom in / out — a keyboard path to the same zoom the wheel already does" },
     ],
   },
   {
