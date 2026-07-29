@@ -45,16 +45,16 @@ alternatives per-feature, because the geography *is* the argument:
 | The quay office | The submission layer's own building | Makes "Submission layer" concrete as a real structure beside the dock, rather than an implied capability of the bare jetty — no protocol role beyond that |
 | The researcher quarter | Researchers and their institutions, collectively | Decorative and collective, not a new gate — where a submitted task's own trip to the quay visibly begins. "Researcher / submitter" in protocol terms is still the quay itself |
 | A researcher's submission | A submitted GA4GH TES task, before any TRE has agreed to it | Travels from the researcher quarter to the quay, entirely on the mainland; visually distinct from the container it becomes once an island's ferry has collected it |
-| An island | A TRE | A separate trust zone with a hard perimeter |
+| An island | A TRE | A separate trust zone with a hard perimeter — this island **is** the safe setting |
 | The island wall | The TRE network boundary | Nothing crosses it inward, ever |
-| The harbourmaster's office (per island) | TRE manager + project approval | Gate 1: a human decides whether this island works with this project at all |
+| The harbourmaster's office (per island) | TRE manager + project approval | The **safe people, safe project** check (this project's own shorthand: Gate 1): a human decides whether this island works with this project — and the people behind it — at all |
 | The ferry (per island) | TRE agent | Departs *from* the island, collects containers, returns; the only vessel that touches an island |
 | A shipping container | A GA4GH TES task | The researcher's code travels; this is nearly literal — TES executes containers |
 | The workshop | TES runner (Funnel in the reference implementation) | Where containers execute, inside the wall |
-| The vault | The sensitive data | Fixed at the island's centre; nothing originating here ever boards a ferry |
+| The vault | The sensitive data | Fixed at the island's centre; nothing originating here ever boards a ferry — this **is** safe data |
 | A sealed crate | A result awaiting review | Produced by the workshop; sealed until a human decision |
-| The island's own customs hall (per island) | The TRE's own local disclosure-control check | Gate 2: a human at this TRE decides whether they are comfortable with this crate leaving their control. Built on the island itself, a different point on the wall than the ferry's dock. There is no shared or central customs hall anywhere in the model, and none on the mainland |
-| The customs inspector (per island) | Egress manager / output review | The human who makes Gate 2's decision — local to this TRE, not a shared or central role; the stamp is the event |
+| The island's own customs hall (per island) | The TRE's own local disclosure-control check | The **safe output** check (this project's own shorthand: Gate 2): a human at this TRE decides whether they are comfortable with this crate leaving their control. Built on the island itself, a different point on the wall than the ferry's dock. There is no shared or central customs hall anywhere in the model, and none on the mainland |
+| The customs inspector (per island) | Egress manager / output review | The human who makes the safe output decision — local to this TRE, not a shared or central role; the stamp is the event |
 | The on-island workflow (per island) | A task's real path through the TRE | Purely informational, never a route anything travels: connects the harbourmaster's office, the workshop, and this island's own customs hall, in the order a task's governance states actually follow. The vault is never on it |
 
 There are **no bridges, causeways, cables, or boats between islands**. Five
@@ -140,24 +140,25 @@ the same review as prose.
    "The data never moves" must be checkable by watching, not asserted by a
    caption.
 3. **Both gates are humans with visible waiting.** There are exactly two
-   gates, and both are local to each TRE: Gate 1 (project approval, at the
-   harbourmaster's office) and Gate 2 (output review, at that island's own
-   customs hall). Both are decisions made by a person, depicted as a person
-   (or an unambiguous human-decision marker), with a queue that visibly
-   holds until the decision lands. Never depict either gate as an automatic
-   scanner, filter, or conveyor. Speeding through the wait for pacing is
-   allowed only in scaled time that the UI discloses. There is no shared or
-   central gate anywhere in the model, and no customs hall or inspector
-   exists on the mainland — once an island's own Gate 2 approves a crate, it
-   travels directly to the researcher's quay.
+   gates, and both are local to each TRE: the safe people/safe project check
+   (Gate 1, at the harbourmaster's office) and the safe output check (Gate 2,
+   at that island's own customs hall). Both are decisions made by a person,
+   depicted as a person (or an unambiguous human-decision marker), with a
+   queue that visibly holds until the decision lands. Never depict either
+   gate as an automatic scanner, filter, or conveyor. Speeding through the
+   wait for pacing is allowed only in scaled time that the UI discloses.
+   There is no shared or central gate anywhere in the model, and no customs
+   hall or inspector exists on the mainland — once an island's own safe
+   output check approves a crate, it travels directly to the researcher's
+   quay.
 4. **Output review is a decision, not a transformation.** A crate is approved
    or refused. It is never "cleaned", shrunk, or laundered by that island's
    own customs hall. If a tour wants to explain disclosure control
    heuristics, it does so in narration, not by animating the crate changing.
 5. **Refusal is a first-class path.** The simulation must include projects
-   that Gate 1 rejects and results that Gate 2 refuses, and tours must show
-   them. A world that only ever says yes teaches that the gates are
-   theatrical.
+   that the safe people/safe project check rejects and results that the safe
+   output check refuses, and tours must show them. A world that only ever
+   says yes teaches that the gates are theatrical.
 6. **Islands are mutually invisible.** No shared queues, no synchronized
    pulses implying coordination, no inter-island traffic. Aggregation of
    results happens at the researcher's quay, after release, and is shown
@@ -186,12 +187,25 @@ the same review as prose.
   state names (QUEUED, INITIALIZING, RUNNING, COMPLETE, EXECUTOR_ERROR,
   CANCELED) appear verbatim in the inspector's technical register and are
   never invented or renamed.
-- Say **output review** or **egress review** for Gate 2, matching the docs.
-  "Disclosure control" may appear in narration as the discipline; the event
-  is a review decision.
+- Say **output review** or **egress review** for the safe output check,
+  matching the docs. "Disclosure control" may appear in narration as the
+  discipline; the event is a review decision. "Gate 2" is this project's own
+  informal shorthand for the same check, not a docs term — keep it out of
+  plain-register prose; it's fine in code identifiers and technical asides.
 - The Five Safes are **safe people, safe projects, safe settings, safe data,
-  safe outputs** — sentence case, always all five, in that order, and the
-  Five Safes tour maps each to a place in the world.
+  safe outputs** — sentence case, always all five, in that order. This is
+  the primary vocabulary for every explanatory surface; lead with it, not
+  with this project's own internal shorthand ("Gate 1", "Gate 2"), which may
+  still appear parenthetically for readers cross-referencing code. The
+  mapping is fixed, same as the world metaphor table:
+  - The harbourmaster's decision judges **safe people** and **safe
+    projects** together (Gate 1, internally).
+  - An island itself — wall, ferry, and all — **is** the **safe setting**.
+  - The vault **is safe data**; see honesty rule 2.
+  - The customs inspector's decision is the **safe output** check (Gate 2,
+    internally).
+  The Five Safes tour visits each of the five in turn, anchored to these
+  same places.
 - Pattern vocabulary is exactly the docs': analytical types **isolated /
   connected / centralised**; data movement **summary / model parameters /
   row-level data**. Five Safes Archipelago depicts isolated + summary only
@@ -226,22 +240,23 @@ project exists. Free-roam is the reward after a tour, not the entry point.
   simDirective }`. The tour player interprets stops; adding a tour must not
   require touching engine code.
 - **Tours drive the real simulation.** A stop's `simDirective` advances or
-  configures `src/sim` (submit this task, have Gate 1 refuse, deliver this
-  crate). Tours never play canned animations divorced from `SimState`. If the
-  tour shows it, the model did it — this is what makes the tour honest.
+  configures `src/sim` (submit this task, have the safe people/safe project
+  check refuse, deliver this crate). Tours never play canned animations
+  divorced from `SimState`. If the tour shows it, the model did it — this is
+  what makes the tour honest.
 - **Launch tours:**
-  1. *The journey of a task* — flagship. Submit → Gate 1 approval → ferry
-     collects → workshop executes → sealed crate → Gate 2 review → release →
-     aggregation at the quay. One island in focus, the others visibly running
-     the same choreography.
+  1. *The journey of a task* — flagship. Submit → safe people/safe project
+     approval → ferry collects → workshop executes → sealed crate → safe
+     output review → release → aggregation at the quay. One island in
+     focus, the others visibly running the same choreography.
   2. *The five safes* — one stop per safe, each anchored to a place: people
      (the quay and named roles), projects (the harbourmaster's office),
      settings (the island wall and workshop), data (the vault), outputs (the
      customs hall).
-  3. *The project that was refused* — Gate 1 says no; the ferry never
-     collects for that project.
-  4. *The result that never left* — Gate 2 refuses; the crate is retained
-     and the researcher sees a refusal, not silence.
+  3. *The project that was refused* — the safe people/safe project check
+     says no; the ferry never collects for that project.
+  4. *The result that never left* — the safe output check refuses; the
+     crate is retained and the researcher sees a refusal, not silence.
 - Narration is dual register per stop: `plain` is one or two sentences with
   no unexpanded acronyms; `detail` is expandable and may name components,
   states, and spec sections. Both are content, both get editorial review.

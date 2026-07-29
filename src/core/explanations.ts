@@ -56,7 +56,7 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     title: "The researcher's quay",
     plain: "Where a researcher submits a project and its tasks, and where approved results simply arrive — no further check happens here.",
     detail:
-      "Researcher / submitter. Tasks begin here, and released results arrive directly here from each island's own customs hall; there is no customs hall or inspector on the mainland. Aggregation of released results across every TRE that approved the project happens here too — the one point in the model that reads across islands, and only after each island's own Gate 2.",
+      "Researcher / submitter. Tasks begin here, and released results arrive directly here from each island's own customs hall; there is no customs hall or inspector on the mainland. Aggregation of released results across every TRE that approved the project happens here too — the one point in the model that reads across islands, and only after each island's own safe output check (Gate 2, internally).",
   },
   QUAY_OFFICE: {
     title: "The quay office",
@@ -77,9 +77,9 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   },
   ISLAND_LAND: {
     title: "An island",
-    plain: "A Trusted Research Environment (TRE) — a separate, sealed place where analysis actually runs.",
+    plain: "A Trusted Research Environment (TRE) — a separate, sealed place where analysis actually runs. This is the safe setting.",
     detail:
-      "A TRE: a separate trust zone with a hard perimeter. Nothing crosses its wall inward except its own ferry, departing and returning.",
+      "A TRE: a separate trust zone with a hard perimeter — the safe setting of the Five Safes framework, made concrete as a place. Nothing crosses its wall inward except its own ferry, departing and returning.",
   },
   ISLAND_BEACH: {
     title: "The shoreline",
@@ -95,9 +95,9 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   },
   VAULT: {
     title: "The vault",
-    plain: "The sensitive data. Fixed here, always — nothing that starts here ever leaves.",
+    plain: "The sensitive data — the safe data at this island's centre. Fixed here, always — nothing that starts here ever leaves.",
     detail:
-      "The vault emits nothing: nothing whose origin is the vault ever boards a ferry, crosses a wall, or appears on the mainland.",
+      "This is safe data. The vault emits nothing: nothing whose origin is the vault ever boards a ferry, crosses a wall, or appears on the mainland.",
   },
   WORKSHOP: {
     title: "The workshop",
@@ -107,9 +107,9 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   },
   GATE1_HARBOURMASTER: {
     title: "The harbourmaster's office",
-    plain: "A human here decides whether this island will work with this project at all — before anything runs.",
+    plain: "A human here checks whether the people and the project are safe to work with — before anything runs.",
     detail:
-      "TRE manager and project approval — Gate 1. A real person's decision, never automatic; the ferry never collects for a project this office refused.",
+      "TRE manager and project approval — the safe people, safe project check (this project's own shorthand: Gate 1). A real person's decision, never automatic; the ferry never collects for a project this office refused.",
   },
   DOCK: {
     title: "The ferry's dock",
@@ -144,15 +144,15 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
   CUSTOMS_HALL: {
     title: "This island's customs hall",
     plain:
-      "Every result this island produces passes through here before it may leave — a human decides whether they're comfortable releasing it beyond this TRE's own control.",
+      "Every result this island produces passes through here before it may leave — a human decides whether it's a safe output, comfortable to release beyond this TRE's own control.",
     detail:
-      "Gate 2, made locally: this TRE's own disclosure-control review. docs.federated-analytics.ac.uk describes this as the \"Full Local Control\" egress pattern — \"at least one person checks the results by eye and approves the release.\" There is no shared or central customs hall in this model, and none on the mainland: an approved crate travels directly from here to the researcher's quay.",
+      "The safe output check, made locally (this project's own shorthand: Gate 2): this TRE's own disclosure-control review. docs.federated-analytics.ac.uk describes this as the \"Full Local Control\" egress pattern — \"at least one person checks the results by eye and approves the release.\" There is no shared or central customs hall in this model, and none on the mainland: an approved crate travels directly from here to the researcher's quay.",
   },
   GATE2_INSPECTOR: {
     title: "The customs inspector",
-    plain: "A human here, on this island, approves or refuses each sealed crate this TRE produced. It is a decision, never a transformation.",
+    plain: "A human here, on this island, checks whether each sealed crate this TRE produced is a safe output — and approves or refuses it. It is a decision, never a transformation.",
     detail:
-      "Egress manager / output review — Gate 2, local to this TRE, just as Gate 1's harbourmaster is. The crate's contents are never cleaned, shrunk, or altered by this decision — only its status changes.",
+      "Egress manager / output review — the safe output check (this project's own shorthand: Gate 2), local to this TRE, just as the safe people/safe project check is at the harbourmaster's office (Gate 1, internally). The crate's contents are never cleaned, shrunk, or altered by this decision — only its status changes.",
   },
   FERRY_ROUTE: {
     title: "The ferry's route",
@@ -165,14 +165,14 @@ export const explanations: Readonly<Record<EntityKind, EntityExplanation>> = {
     plain:
       "The path a sealed crate travels: out through this island's own customs hall, across the water, directly to the researcher's quay.",
     detail:
-      "One-way and outbound-only, like the ferry's route — it leaves through this island's own customs hall, where Gate 2's human decision is made, never re-enters any island, and ends at the researcher's quay. There is no shared central stop along the way.",
+      "One-way and outbound-only, like the ferry's route — it leaves through this island's own customs hall, where the safe output decision is made (Gate 2, internally), never re-enters any island, and ends at the researcher's quay. There is no shared central stop along the way.",
   },
   WORKFLOW_ROUTE: {
     title: "This island's own workflow",
     plain:
       "How a task actually moves through this island once it's here: approved at the harbourmaster's office, run at the workshop, then checked at the customs hall before it may leave.",
     detail:
-      "Connects the harbourmaster's office (Gate 1), the workshop, and this island's own customs hall (Gate 2), in that order — the real sequence a TES task's governance states follow inside the wall. Purely informational: nothing travels along it. The vault is deliberately not on this path: nothing whose origin is the vault ever travels anywhere.",
+      "Connects the harbourmaster's office (the safe people/safe project check — Gate 1, internally), the workshop, and this island's own customs hall (the safe output check — Gate 2, internally), in that order — the real sequence a TES task's governance states follow inside the wall. Purely informational: nothing travels along it. The vault is deliberately not on this path: nothing whose origin is the vault ever travels anywhere.",
   },
 };
 

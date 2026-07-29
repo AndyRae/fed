@@ -4,9 +4,10 @@ import type { Tour } from "./tourTypes.ts";
 const TRE_A = { id: "tre-a", name: "Isle of Ailsa" };
 
 /**
- * The flagship tour: submit → Gate 1 approval → ferry collects → workshop
- * executes → sealed crate → Gate 2 review → release → aggregation at the
- * quay. See CLAUDE.md "Tour mechanism" > "Launch tours" #1.
+ * The flagship tour: submit → safe people/safe project approval → ferry
+ * collects → workshop executes → sealed crate → safe output review →
+ * release → aggregation at the quay. See CLAUDE.md "Tour mechanism" >
+ * "Launch tours" #1.
  *
  * The demo world currently renders one TRE (Trusted Research Environment)
  * while its on-island layout and choreography are being reworked for
@@ -29,7 +30,7 @@ export const journeyOfATaskTour: Tour = {
       narration: {
         plain: "A researcher submits a project proposal to an island TRE (Trusted Research Environment), from the quay.",
         detail:
-          "submitProject creates a Project and a PENDING ProjectApproval per targeted TRE. Each approval is Gate 1, decided independently by that island's harbourmaster — approving here says nothing about approval anywhere else, on any other island that might later target the same project.",
+          "submitProject creates a Project and a PENDING ProjectApproval per targeted TRE. Each approval is that island's own safe people/safe project check (Gate 1, internally), decided independently by that island's harbourmaster — approving here says nothing about approval anywhere else, on any other island that might later target the same project.",
       },
       simDirective: {
         kind: "submitProject",
@@ -50,7 +51,7 @@ export const journeyOfATaskTour: Tour = {
         plain:
           "The researcher also hands over the actual piece of work — a container that will run inside the island, if it's approved.",
         detail:
-          "submitTask creates a TES task in AWAITING_PROJECT_APPROVAL. No TRE agent can collect it until Gate 1 approves this project for that specific island.",
+          "submitTask creates a TES task in AWAITING_PROJECT_APPROVAL. No TRE agent can collect it until the safe people/safe project check (Gate 1, internally) approves this project for that specific island.",
       },
       simDirective: {
         kind: "submitTask",
@@ -59,13 +60,13 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "gate-1-approval",
-      title: "Gate 1: project approval",
+      title: "Safe people, safe project",
       cameraPose: { kind: "treGate1", treId: "tre-a" },
       focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
-        plain: "The harbourmaster of the island decides: yes, this project may run here.",
+        plain: "The harbourmaster of the island checks the people and the project together, and decides: yes, this may run here.",
         detail:
-          "decideProjectApproval(APPROVED) — a human decision, never automatic. The task itself doesn't move yet: it's still AWAITING_PROJECT_APPROVAL until the island's own ferry next polls.",
+          "decideProjectApproval(APPROVED) — the safe people/safe project check (this project's own shorthand: Gate 1), a human decision, never automatic. The task itself doesn't move yet: it's still AWAITING_PROJECT_APPROVAL until the island's own ferry next polls.",
       },
       simDirective: {
         kind: "decideProjectApproval",
@@ -115,13 +116,13 @@ export const journeyOfATaskTour: Tour = {
     },
     {
       id: "gate-2-review",
-      title: "Gate 2: output review",
+      title: "Safe output",
       cameraPose: { kind: "treCustoms", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
-        plain: "A person at this island's own customs hall inspects the sealed crate and decides to release it.",
+        plain: "A person at this island's own customs hall checks whether this is a safe output, and decides to release it.",
         detail:
-          "decideOutputReview(RELEASED) — Gate 2, the output/egress review, made locally by this TRE. This is a decision, not a transformation: the crate's contents are never altered, only its status.",
+          "decideOutputReview(RELEASED) — the safe output check (this project's own shorthand: Gate 2), the output/egress review, made locally by this TRE. This is a decision, not a transformation: the crate's contents are never altered, only its status.",
       },
       simDirective: {
         kind: "decideOutputReview",
@@ -149,7 +150,7 @@ export const journeyOfATaskTour: Tour = {
         plain:
           "Back at the researcher's quay, released results are gathered together with results from every other island that approved the project.",
         detail:
-          "releasedCratesForProject reads across every TRE's released crates for this project. With more than one island targeted, this is the one point in the model that looks across islands, and only over crates that already cleared that island's own Gate 2.",
+          "releasedCratesForProject reads across every TRE's released crates for this project. With more than one island targeted, this is the one point in the model that looks across islands, and only over crates that already cleared that island's own safe output check (Gate 2, internally).",
       },
       simDirective: { kind: "none" },
     },
@@ -157,9 +158,10 @@ export const journeyOfATaskTour: Tour = {
 };
 
 /**
- * "The result that never left": Gate 2 refuses. See CLAUDE.md "Tour
- * mechanism" > "Launch tours" #4. The crate is retained, not deleted, and
- * the researcher sees an explicit refusal rather than silence.
+ * "The result that never left": the safe output check refuses. See
+ * CLAUDE.md "Tour mechanism" > "Launch tours" #4. The crate is retained,
+ * not deleted, and the researcher sees an explicit refusal rather than
+ * silence.
  */
 export const theResultThatNeverLeftTour: Tour = {
   id: "the-result-that-never-left",
@@ -201,12 +203,12 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "gate-1-approval",
-      title: "Gate 1 approves",
+      title: "Safe people, safe project — approved",
       cameraPose: { kind: "treGate1", treId: "tre-a" },
       focusEntity: { kind: "tre", treId: "tre-a" },
       narration: {
         plain: "The harbourmaster approves the project. It will be allowed to run.",
-        detail: "decideProjectApproval(APPROVED) — Gate 1 passes; Gate 2 still lies ahead, undecided.",
+        detail: "decideProjectApproval(APPROVED) — the safe people/safe project check passes (Gate 1, internally); the safe output check (Gate 2, internally) still lies ahead, undecided.",
       },
       simDirective: {
         kind: "decideProjectApproval",
@@ -253,13 +255,13 @@ export const theResultThatNeverLeftTour: Tour = {
     },
     {
       id: "gate-2-refuses",
-      title: "Gate 2 refuses",
+      title: "Safe output — refused",
       cameraPose: { kind: "treCustoms", treId: "tre-a" },
       focusEntity: { kind: "crate", crateId: "crate-task-1" },
       narration: {
-        plain: "This island's own customs inspector examines the crate and refuses it. It will not leave.",
+        plain: "This island's own customs inspector examines the crate, decides it isn't a safe output, and refuses it. It will not leave.",
         detail:
-          "decideOutputReview(REFUSED) — Gate 2, local to this TRE, can say no. The task moves to OUTPUT_REFUSED and the crate to REFUSED; neither is deleted.",
+          "decideOutputReview(REFUSED) — the safe output check (this project's own shorthand: Gate 2), local to this TRE, can say no. The task moves to OUTPUT_REFUSED and the crate to REFUSED; neither is deleted.",
       },
       simDirective: {
         kind: "decideOutputReview",

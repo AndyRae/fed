@@ -24,7 +24,7 @@ export interface HudHandle {
 }
 
 const SCALED_TIME_DISCLOSURE =
-  "Time is compressed for clarity — a real Gate 1 or Gate 2 decision can take days; this world shows the same choreography in seconds.";
+  "Time is compressed for clarity — a real safe project or safe output decision can take days; this world shows the same choreography in seconds.";
 
 export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
   const tourButtons = options.tours.map((tour) =>

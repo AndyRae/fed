@@ -43,10 +43,10 @@ function statRow(label: string): Row {
 
 export function mountStatsPanel(root: HTMLElement, options: StatsPanelOptions): StatsPanelHandle {
   const projects = statRow("Projects submitted");
-  const gate1 = statRow("Gate 1 decided");
+  const gate1 = statRow("Safe project decided");
   const inFlight = statRow("Tasks in flight");
   const analyses = statRow("Analyses run");
-  const gate2 = statRow("Gate 2 decided");
+  const gate2 = statRow("Safe output decided");
 
   const rows = [projects, gate1, inFlight, analyses, gate2];
 
