@@ -49,7 +49,7 @@ describe("buildFerryRouteLine", () => {
   it("renders as a real, solid tube — a visible track, not a hairline", () => {
     const line = buildFerryRouteLine(island);
     const geometry = line.geometry as THREE.TubeGeometry;
-    expect(geometry.parameters.radius).toBeGreaterThan(0.15);
+    expect(geometry.parameters.radius).toBeGreaterThan(0.08);
     const material = line.material as THREE.MeshStandardMaterial;
     expect(material.transparent).toBe(false);
   });

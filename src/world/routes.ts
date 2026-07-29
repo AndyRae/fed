@@ -18,7 +18,10 @@ const SEA_ROUTE_HEIGHT = 0.9;
 
 const TRACK_RADIAL_SEGMENTS = 8;
 const TUBULAR_SEGMENTS_PER_LEG = 6;
-const PHYSICAL_TRACK_RADIUS = 0.22;
+// A little more gentle than a first pass had it (0.22) — thin enough that
+// the ferry and egress tracks read as lanes on a chart rather than
+// dominating the view between mainland and island.
+const PHYSICAL_TRACK_RADIUS = 0.14;
 
 function toVector3(point: Vec3, height: number): THREE.Vector3 {
   return new THREE.Vector3(point.x, point.y + height, point.z);
