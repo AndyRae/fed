@@ -51,8 +51,12 @@ type Phase = "WAITING" | "ACTIVE";
  * no SimState and stands for nothing in the protocol; motion here is
  * background weather, not a claim about federation.
  */
-const MIN_WAIT_SECONDS = 50;
-const MAX_WAIT_SECONDS = 110;
+// Noticeably more frequent than a first pass had it (50-110s) — feedback
+// was that watching for a while still showed very little weather. Active
+// windows (16s mist, 11s rain) now make up something like 40% of the time,
+// rather than being a rare footnote.
+const MIN_WAIT_SECONDS = 12;
+const MAX_WAIT_SECONDS = 28;
 const FADE_SECONDS = 2.5;
 const DEFAULT_ROAM_RADIUS = 55;
 const MAX_PLACEMENT_ATTEMPTS = 30;

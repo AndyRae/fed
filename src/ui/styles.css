@@ -626,6 +626,11 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   border-color: var(--fsa-gate-amber, #d99a2b);
 }
 
+.fsa-hud-top__orbit.is-active {
+  background: rgba(79, 195, 199, 0.22);
+  border-color: #4fc3c7;
+}
+
 /* --------------------------------- mobile ---------------------------------- */
 
 /* Below this width the top bar's title + disclosure + tour buttons no

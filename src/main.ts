@@ -88,6 +88,11 @@ cameraRig.setPose({
   position: { x: 0, y: 50, z: 60 },
   target: { x: 0, y: 0, z: -5 },
 });
+// The gently orbiting overview is the default view on load — see the HUD's
+// 🌐 toggle (setOrbitEnabled, defined further down) for where a visitor's
+// own drag turns this back off, and startTour/onExit for how a tour
+// suspends and restores it.
+cameraRig.controls.autoRotate = true;
 
 let worldGroup = buildWorld(currentState);
 engine.scene.add(worldGroup);
@@ -507,6 +512,30 @@ function overviewPoseForRingRadius(geometries: ReadonlyMap<TreId, IslandGeometry
   };
 }
 
+/**
+ * The visitor's own preference for the gently orbiting overview camera —
+ * on by default (see the initial cameraRig.controls.autoRotate = true
+ * above). Only ever changed by an explicit HUD click or by the visitor
+ * dragging the camera themselves (handleUserCameraTakeover below); a tour
+ * starting or ending never touches it, only the live autoRotate flag —
+ * see startTour/onExit.
+ */
+let orbitEnabled = true;
+
+/** The HUD's 🌐 toggle and handleUserCameraTakeover's own single path for changing orbitEnabled — always keeps the live autoRotate flag, the stored preference, and the button's own pressed state in agreement. Also re-frames the camera on the whole archipelago when turning on, so "orbit" always means the same gentle medium-distance overview, not a spin from wherever the camera happened to be left. */
+function setOrbitEnabled(enabled: boolean): void {
+  orbitEnabled = enabled;
+  hud.setOrbitActive(enabled);
+  cameraRig.controls.autoRotate = enabled && !tourActive;
+  if (enabled) cameraRig.flyTo(overviewPoseForRingRadius(islandGeometries), CAMERA_FLIGHT_SECONDS);
+}
+
+/** Fires on the OrbitControls 'start' event — a real pointer/wheel interaction, never something main.ts's own flyTo/setPose calls trigger — so dragging, zooming, or panning the camera is exactly the "override" the orbit toggle promises. */
+function handleUserCameraTakeover(): void {
+  if (orbitEnabled) setOrbitEnabled(false);
+}
+cameraRig.controls.addEventListener("start", handleUserCameraTakeover);
+
 /** Set while a tour has taken over the camera and world — see startTour/onExit just below. Guards rebuildIslandCount so a mid-tour slider drag can't rebuild the very world the tour is driving. */
 let tourActive = false;
 
@@ -575,6 +604,11 @@ function startTour(tour: Tour): void {
   statsPanel.setIslandsEnabled(false);
   pauseAmbientDemo();
   cameraRig.controls.enabled = false;
+  // Suspended, not turned off: a tour drives the camera its own way via
+  // flyTo, and OrbitControls' own autoRotate does not check `enabled` —
+  // left on, it would fight every stop's camera move. onExit restores it
+  // from the preserved orbitEnabled preference, not from this false.
+  cameraRig.controls.autoRotate = false;
   picker.setEnabled(false);
   flowController.dispose();
 
@@ -600,6 +634,7 @@ function startTour(tour: Tour): void {
       resumeAmbientDemo();
       tourActive = false;
       statsPanel.setIslandsEnabled(true);
+      cameraRig.controls.autoRotate = orbitEnabled;
     },
   });
 }
@@ -621,7 +656,13 @@ const hud = mountHud(document.body, {
     manualGatesEnabled = !manualGatesEnabled;
     hud.setManualGatesActive(manualGatesEnabled);
   },
+  onToggleOrbit: () => setOrbitEnabled(!orbitEnabled),
 });
+// Orbit defaults to on (see the initial cameraRig.controls.autoRotate =
+// true above); the button's own default markup doesn't know that, so sync
+// it once here rather than threading an "initial" prop through HudOptions
+// for a single boolean.
+hud.setOrbitActive(orbitEnabled);
 
 window.addEventListener("keydown", (event) => {
   if (event.key !== "?") return;

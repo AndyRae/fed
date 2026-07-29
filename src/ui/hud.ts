@@ -13,6 +13,7 @@ export interface HudOptions {
   readonly onToggleHelp: () => void;
   readonly onToggleNight: () => void;
   readonly onToggleManualGates: () => void;
+  readonly onToggleOrbit: () => void;
 }
 
 export interface HudHandle {
@@ -21,6 +22,8 @@ export interface HudHandle {
   setNightActive(active: boolean): void;
   /** Same pattern as setNightActive — the manual/automatic state itself lives in main.ts. */
   setManualGatesActive(active: boolean): void;
+  /** Same pattern again — the camera's own autoRotate state lives in main.ts/cameraRig.ts, not here. */
+  setOrbitActive(active: boolean): void;
 }
 
 const SCALED_TIME_DISCLOSURE =
@@ -38,6 +41,15 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
       },
     ),
   );
+
+  const orbitButton = el("button", {
+    class: "fsa-btn fsa-hud-top__orbit",
+    type: "button",
+    text: "🌐",
+    "aria-label": "Toggle the gently orbiting overview camera",
+    "aria-pressed": "false",
+    on: { click: () => options.onToggleOrbit() },
+  });
 
   const nightButton = el("button", {
     class: "fsa-btn fsa-hud-top__night",
@@ -70,7 +82,7 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     { id: "fsa-hud-top", class: "fsa-hud-top" },
     el("div", { class: "fsa-hud-top__title", text: "Five Safes Archipelago" }),
     el("div", { class: "fsa-hud-top__disclosure", text: SCALED_TIME_DISCLOSURE }),
-    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, gatesButton, nightButton, helpButton),
+    el("div", { class: "fsa-hud-top__tours" }, ...tourButtons, gatesButton, orbitButton, nightButton, helpButton),
   );
   root.append(bar);
 
@@ -85,6 +97,10 @@ export function mountHud(root: HTMLElement, options: HudOptions): HudHandle {
     setManualGatesActive(active) {
       gatesButton.classList.toggle("is-active", active);
       gatesButton.setAttribute("aria-pressed", String(active));
+    },
+    setOrbitActive(active) {
+      orbitButton.classList.toggle("is-active", active);
+      orbitButton.setAttribute("aria-pressed", String(active));
     },
   };
 }

@@ -11,9 +11,14 @@ export interface CameraPoseVec {
 
 /**
  * Wraps the camera and its controls behind a pose-based API. Free-roam uses
- * the underlying OrbitControls; there is no auto-rotate — motion carries
- * meaning, and idle camera drift is not part of the protocol. See CLAUDE.md
- * "Visual language".
+ * the underlying OrbitControls. `controls.autoRotate` drives the gentle
+ * orbiting overview camera (main.ts's HUD toggle, on by default) — a
+ * presentation choice about how the viewer looks at the world, not motion
+ * inside it, so it sits outside CLAUDE.md "Visual language"'s rule that
+ * protocol motion carries meaning: it never touches a ferry, a crate, or
+ * any SimState. main.ts is responsible for turning it off the moment the
+ * viewer takes the camera themselves, and for suspending it during tours,
+ * which drive the camera their own way.
  */
 export interface CameraRig {
   readonly controls: OrbitControls;
@@ -43,6 +48,10 @@ export function createCameraRig(engine: Engine): CameraRig {
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.autoRotate = false;
+  // A full orbit takes about two minutes — gentle enough to read as ambient
+  // background motion, not a ride. main.ts toggles `autoRotate` itself;
+  // this is only the speed it moves at once that's on.
+  controls.autoRotateSpeed = 0.5;
   controls.minDistance = 4;
   // Room enough for main.ts's overviewPoseForRingRadius to pull the camera
   // back far enough to frame the widest island crescent (see IDEAS.md
@@ -70,7 +79,10 @@ export function createCameraRig(engine: Engine): CameraRig {
   // middle of the screen and drags the thing you wanted further away.
   controls.zoomToCursor = true;
 
-  engine.onBeforeRender(() => controls.update());
+  // Passing deltaSeconds makes autoRotate's own speed frame-rate
+  // independent; damping (above) already applies its factor per call
+  // regardless of dt, so this doesn't change existing damping feel.
+  engine.onBeforeRender((deltaSeconds) => controls.update(deltaSeconds));
 
   function getPose(): CameraPoseVec {
     return { position: vec3From(engine.camera.position), target: vec3From(controls.target) };

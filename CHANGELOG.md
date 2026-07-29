@@ -6,6 +6,28 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## A gently orbiting overview camera
+
+A 🌐 toggle next to night mode: the default view on load is a slow,
+continuous orbit of the whole archipelago from a medium distance
+(`cameraRig.ts`'s `controls.autoRotate`, ~2 minutes per full turn) rather
+than a static shot. Dragging, zooming, or panning the camera yourself
+turns it off immediately — real interaction always wins, it's never
+fought — and the button reflects that. A tour suspends it rather than
+turning it off outright, so it resumes correctly afterwards if it was on
+before; changing the island count re-frames it the same way a manual
+overview re-fly already did.
+
+This is a deliberate change from this project's earlier stance (still
+visible in git history) that free-roam should never auto-rotate, on the
+reasoning that "motion carries meaning" and idle camera drift wasn't part
+of the protocol. That honesty rule is about what moves *in* the world —
+ferries, crates, decorative motion that must never cross a wall — not
+about how a viewer is shown that world. An orbiting *camera* never
+touches a ferry, a crate, or any SimState, so it doesn't dilute that rule;
+it's a presentation choice, made because the project owner wanted a
+better first impression than a static shot.
+
 ## Weather variety
 
 A rare, purely decorative easter egg in the spirit of the whale
@@ -17,6 +39,11 @@ mainland's coastline. Reads no SimState and stands for nothing in the
 protocol; motion here is background weather, not a claim about
 federation. See `src/engine/weatherController.ts` and
 `src/world/weather.ts`.
+
+(Tuned noticeably more frequent shortly after shipping — the first pass's
+50-110 second wait between occurrences read as "almost never" in
+practice; see `MIN_WAIT_SECONDS`/`MAX_WAIT_SECONDS` in
+`weatherController.ts`.)
 
 ## A visible moment when aggregation actually happens
 
