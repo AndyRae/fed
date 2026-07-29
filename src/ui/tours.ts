@@ -283,3 +283,132 @@ export const theResultThatNeverLeftTour: Tour = {
     },
   ],
 };
+
+/**
+ * "The five safes": one stop per safe, each anchored to a place — people
+ * (the quay), projects (the harbourmaster's office), settings (the
+ * island), data (the vault), outputs (the customs hall). See CLAUDE.md
+ * "Tour mechanism" > "Launch tours" #2 and "Terminology and language"'s
+ * own fixed mapping. Two extra, unbranded stops (submitting the task,
+ * sealing the crate) sit between the "safe" stops purely because the
+ * model requires them before the next safe's own moment can be real —
+ * same precedent as the flagship tour splitting "submit project" from
+ * "submit task". Every safe still gets its own single dedicated stop.
+ */
+export const theFiveSafesTour: Tour = {
+  id: "the-five-safes",
+  title: "The five safes",
+  createInitialState: () => createInitialSimState({ seed: 3, tres: [TRE_A], pollIntervalTicks: 2 }),
+  stops: [
+    {
+      id: "safe-people",
+      title: "Safe people",
+      cameraPose: { kind: "mainland" },
+      focusEntity: { kind: "project", projectId: "proj-five-safes" },
+      narration: {
+        plain:
+          "The first safe is safe people: is everyone in this story who they say they are, and allowed to be here? A researcher — a real, named person — submits a project proposal from the quay.",
+        detail:
+          "submitProject creates a Project with a named researcher field. This model has no login, token, or credential exchange anywhere in it (see SIMPLIFICATIONS.md, \"No authentication/authorisation flow\") — the harbourmaster and customs inspector met later stand in for identity-checked, audited decisions in a genuine deployment.",
+      },
+      simDirective: {
+        kind: "submitProject",
+        params: {
+          id: "proj-five-safes",
+          name: "Community Health Survey",
+          researcher: "Dr. Priya Nair",
+          targetTreIds: ["tre-a"],
+        },
+      },
+    },
+    {
+      id: "submit-task",
+      title: "The work travels too",
+      cameraPose: { kind: "mainland" },
+      focusEntity: { kind: "task", taskId: "task-1" },
+      narration: {
+        plain:
+          "The researcher also hands over the actual piece of work — a container that will run inside the island, if it's approved.",
+        detail: "submitTask creates a TES task in AWAITING_PROJECT_APPROVAL. Safe people alone doesn't let it run — that's the next safe.",
+      },
+      simDirective: {
+        kind: "submitTask",
+        params: { id: "task-1", projectId: "proj-five-safes", treId: "tre-a" },
+      },
+    },
+    {
+      id: "safe-projects",
+      title: "Safe projects",
+      cameraPose: { kind: "treGate1", treId: "tre-a" },
+      focusEntity: { kind: "tre", treId: "tre-a" },
+      narration: {
+        plain:
+          "The second safe is safe projects: is this specific piece of work, for this specific reason, something this island should agree to? The harbourmaster's decision actually covers the first two safes together — is this a safe project, brought by safe people — before anything is allowed to run.",
+        detail:
+          "decideProjectApproval(APPROVED) — this project's own shorthand for it is Gate 1. A human decision, never automatic. See CLAUDE.md's world-metaphor table: \"the harbourmaster's decision judges safe people and safe projects together.\"",
+      },
+      simDirective: {
+        kind: "decideProjectApproval",
+        params: {
+          projectId: "proj-five-safes",
+          treId: "tre-a",
+          decision: "APPROVED",
+          decidedBy: "Harbourmaster of Isle of Mingulay",
+        },
+      },
+    },
+    {
+      id: "safe-settings",
+      title: "Safe settings",
+      cameraPose: { kind: "tre", treId: "tre-a" },
+      focusEntity: { kind: "task", taskId: "task-1" },
+      narration: {
+        plain:
+          "The third safe is safe settings: is the technical environment itself trustworthy? This island is the safe setting — a sealed, walled place. Now that the project is approved, the island's own ferry has collected the work, and it's running inside the wall.",
+        detail:
+          "tick(4): the TRE agent's poll boundary fires (TASK_COLLECTED), then QUEUED → INITIALIZING → RUNNING, the GA4GH TES executor states verbatim. Nothing crosses this wall inward except the island's own ferry, departing and returning — honesty rule 1.",
+      },
+      simDirective: { kind: "tick", ticks: 4 },
+    },
+    {
+      id: "safe-data",
+      title: "Safe data",
+      cameraPose: { kind: "treVault", treId: "tre-a" },
+      focusEntity: { kind: "tre", treId: "tre-a" },
+      narration: {
+        plain:
+          "The fourth safe is safe data: is the sensitive information itself protected? The vault is safe data. It never moves — the workshop, right beside it, computes on it in place, and nothing it holds ever leaves.",
+        detail:
+          "No new sim action at this stop: the task the previous stop started is still RUNNING, so the vault and the workshop are genuinely glowing together right now (see engine/flowController.ts's compute glow) — never a beam or a particle between them, honesty rule 2.",
+      },
+      simDirective: { kind: "none" },
+    },
+    {
+      id: "crate-sealed",
+      title: "A crate is sealed",
+      cameraPose: { kind: "treWorkshop", treId: "tre-a" },
+      focusEntity: { kind: "crate", crateId: "crate-task-1" },
+      narration: {
+        plain: "The work finishes and is sealed into a crate. Nothing is released yet.",
+        detail: "Two ticks: RUNNING → COMPLETE → AWAITING_OUTPUT_REVIEW. A Crate is sealed in HELD status.",
+      },
+      simDirective: { kind: "tick", ticks: 2 },
+    },
+    {
+      id: "safe-outputs",
+      title: "Safe outputs",
+      cameraPose: { kind: "treCustoms", treId: "tre-a" },
+      focusEntity: { kind: "crate", crateId: "crate-task-1" },
+      narration: {
+        plain:
+          "The fifth safe is safe outputs: could this specific result, on its way out, reveal something it shouldn't? A person at this island's own customs hall checks whether this is a safe output, and decides to release it.",
+        detail:
+          "decideOutputReview(RELEASED) — this project's own shorthand for it is Gate 2. A decision, not a transformation: the crate's contents are never altered, only its status. All five safes — people, projects, settings, data, outputs — have each now had their own real moment in this one journey.",
+      },
+      simDirective: {
+        kind: "decideOutputReview",
+        params: { crateId: "crate-task-1", decision: "RELEASED" },
+      },
+    },
+  ],
+};

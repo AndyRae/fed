@@ -27,6 +27,32 @@ A quiet one-time toast the first time a visitor spots the whale, or finds
 a refused project, or opens night mode — small delight, cheap to build,
 rewards exploring free-roam instead of only tour-hopping.
 
+### An island's own ledger
+
+Click an island (or a new dedicated landmark on it) and see its own
+tally: projects approved/refused, outputs released/refused, going back to
+when it joined the run — essentially `computeActivityStats` scoped to one
+`treId` instead of the whole world. Nothing new in `src/sim`, just a
+selector and an inspector-panel view. The point isn't the numbers, it's
+the shape of the honesty claim: you can only ever open one island's own
+record at a time, never a shared or combined view — a concrete,
+clickable instance of honesty rule 6 ("islands are mutually invisible"),
+rather than a rule you have to take on faith from CLAUDE.md's prose.
+
+### A project-centric view at the quay
+
+The mirror image of the island ledger, from the researcher's side: click
+a project (at the quay, or from a new researcher-facing list there) and
+see its status across every island it targeted — pending/approved/refused
+per island, released/refused per island, released count. This is the one
+place in the model that's *allowed* to read across islands (honesty rule
+6's own exception, already exercised by `releasedCratesForProject`), so
+it dramatizes "aggregation only happens after release, and only at the
+quay" as a real, inspectable view rather than a line in a tour's
+narration. Pairs naturally with the island ledger above — TRE-centric and
+project-centric views of the same underlying `SimState`, from the two
+sides honesty rule 6 actually cares about keeping apart.
+
 ## World & federation patterns
 
 ### Other federation patterns, as a genuinely separate mode

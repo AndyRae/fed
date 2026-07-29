@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getCrateForTask, getTask, releasedCratesForProject } from "../sim/selectors.ts";
-import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./tours.ts";
+import { journeyOfATaskTour, theFiveSafesTour, theResultThatNeverLeftTour } from "./tours.ts";
 import { playTour } from "./tourPlayer.ts";
 
 function narrationIsDualRegister(tour: { stops: readonly { narration: { plain: string; detail: string } }[] }) {
@@ -72,5 +72,58 @@ describe("the result that never left (refusal tour)", () => {
   it("never appears in the released aggregation for its project", () => {
     const run = playTour(theResultThatNeverLeftTour);
     expect(releasedCratesForProject(run.finalState, "proj-imaging-study")).toHaveLength(0);
+  });
+});
+
+describe("the five safes", () => {
+  it("has non-empty plain and technical narration at every stop", () => {
+    expect(narrationIsDualRegister(theFiveSafesTour)).toBe(true);
+  });
+
+  it("gives each of the five safes its own dedicated stop, in the fixed order (people, projects, settings, data, outputs)", () => {
+    const titles = theFiveSafesTour.stops.map((s) => s.title);
+    expect(titles).toEqual([
+      "Safe people",
+      "The work travels too",
+      "Safe projects",
+      "Safe settings",
+      "Safe data",
+      "A crate is sealed",
+      "Safe outputs",
+    ]);
+  });
+
+  it("walks the sim through the expected task state sequence, stop by stop", () => {
+    const run = playTour(theFiveSafesTour);
+    const taskId = "task-1";
+    const statusByStopId = new Map(run.stops.map((s) => [s.stop.id, getTask(s.state, taskId)?.status]));
+
+    expect(statusByStopId.get("safe-people")).toBeUndefined(); // task doesn't exist yet
+    expect(statusByStopId.get("submit-task")).toBe("AWAITING_PROJECT_APPROVAL");
+    expect(statusByStopId.get("safe-projects")).toBe("AWAITING_PROJECT_APPROVAL"); // approved, but the ferry hasn't polled yet
+    expect(statusByStopId.get("safe-settings")).toBe("RUNNING");
+    expect(statusByStopId.get("safe-data")).toBe("RUNNING"); // unchanged: no new sim action, the same real RUNNING state
+    expect(statusByStopId.get("crate-sealed")).toBe("AWAITING_OUTPUT_REVIEW");
+    expect(statusByStopId.get("safe-outputs")).toBe("RELEASED");
+  });
+
+  it("the safe-data stop never advances the tick, so its RUNNING state is the same one safe-settings actually produced — the compute glow it describes is real, not asserted", () => {
+    const run = playTour(theFiveSafesTour);
+    const settingsStop = run.stops.find((s) => s.stop.id === "safe-settings")!;
+    const dataStop = run.stops.find((s) => s.stop.id === "safe-data")!;
+    expect(dataStop.state).toBe(settingsStop.state);
+  });
+
+  it("seals exactly one HELD crate before the safe-outputs decision, then releases it", () => {
+    const run = playTour(theFiveSafesTour);
+    const sealedStop = run.stops.find((s) => s.stop.id === "crate-sealed")!;
+    expect(getCrateForTask(sealedStop.state, "task-1")?.status).toBe("HELD");
+
+    const finalStop = run.stops[run.stops.length - 1]!;
+    expect(getCrateForTask(finalStop.state, "task-1")?.status).toBe("RELEASED");
+  });
+
+  it("is fully deterministic: replaying it twice produces identical final state", () => {
+    expect(playTour(theFiveSafesTour).finalState).toEqual(playTour(theFiveSafesTour).finalState);
   });
 });

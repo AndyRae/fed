@@ -22,7 +22,7 @@ import { mountInspectorPanel } from "./ui/inspectorPanel.ts";
 import { mountStatsPanel } from "./ui/statsPanel.ts";
 import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
-import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
+import { journeyOfATaskTour, theFiveSafesTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
 import type { Tour } from "./ui/tourTypes.ts";
 import { mainlandGeometry, type IslandGeometry } from "./world/layout.ts";
 import { MAINLAND_RADIUS } from "./world/mainland.ts";
@@ -645,7 +645,7 @@ const helpOverlay = mountHelpOverlay(document.body, SOURCE_URL);
 const nightMode = createNightModeController(engine);
 
 const hud = mountHud(document.body, {
-  tours: [journeyOfATaskTour, theResultThatNeverLeftTour],
+  tours: [journeyOfATaskTour, theResultThatNeverLeftTour, theFiveSafesTour],
   onStartTour: startTour,
   onToggleHelp: () => helpOverlay.toggle(),
   onToggleNight: () => {
@@ -683,6 +683,7 @@ declare global {
       readonly tours: {
         journeyOfATaskTour: typeof journeyOfATaskTour;
         theResultThatNeverLeftTour: typeof theResultThatNeverLeftTour;
+        theFiveSafesTour: typeof theFiveSafesTour;
         playTour: typeof playTour;
       };
     };
@@ -701,5 +702,5 @@ window.ARCHIPELAGO = {
   get picker() {
     return picker;
   },
-  tours: { journeyOfATaskTour, theResultThatNeverLeftTour, playTour },
+  tours: { journeyOfATaskTour, theResultThatNeverLeftTour, theFiveSafesTour, playTour },
 };
