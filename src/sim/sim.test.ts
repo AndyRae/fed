@@ -170,6 +170,8 @@ describe("the journey of a task", () => {
     expect(crate).toBeDefined();
     expect(crate?.status).toBe("HELD");
     expect(state.events).toContainEqual({ type: "CRATE_SEALED", tick: 7, crateId: crate!.id, taskId: "t1" });
+    expect(["AGGREGATE", "ROW_LEVEL"]).toContain(crate?.content.kind);
+    expect(crate?.content.rows.length).toBeGreaterThan(0);
   });
 
   it("holds a completed crate at AWAITING_OUTPUT_REVIEW indefinitely until a decision lands", () => {
@@ -201,6 +203,13 @@ describe("decideOutputReview", () => {
     state = decideOutputReview(state, { crateId: crate.id, decision: "RELEASED" });
     expect(getTask(state, "t1")?.status).toBe("RELEASED");
     expect(getCrateForTask(state, "t1")?.status).toBe("RELEASED");
+  });
+
+  it("never alters a crate's content when deciding it — a decision, not a transformation (honesty rule 4)", () => {
+    let state = completedTaskState();
+    const crate = getCrateForTask(state, "t1")!;
+    state = decideOutputReview(state, { crateId: crate.id, decision: "RELEASED" });
+    expect(getCrateForTask(state, "t1")?.content).toEqual(crate.content);
   });
 
   it("refuses a crate and the underlying task on REFUSED, and the crate is retained rather than deleted", () => {

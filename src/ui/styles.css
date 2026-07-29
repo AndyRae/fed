@@ -387,6 +387,41 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   color: var(--fsa-ink-faint);
 }
 
+.fsa-inspector__content {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--fsa-line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.fsa-inspector__content-summary {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--fsa-ink-faint);
+  font-style: italic;
+}
+
+.fsa-inspector__content-rows {
+  margin: 6px 0 0;
+  padding: 0 0 0 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.fsa-inspector__content-rows li {
+  word-break: break-word;
+}
+
+.fsa-inspector__content-note {
+  margin: 6px 0 0;
+  font-size: 10px;
+  color: var(--fsa-ink-faint);
+  opacity: 0.8;
+}
+
 .fsa-inspector__decision-actions {
   display: flex;
   gap: 8px;

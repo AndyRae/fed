@@ -144,6 +144,17 @@ export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOp
         el("p", { class: "fsa-inspector__decision-lead", text: project ? `Pending: a result from ${project.name}` : "A result is pending" }),
         el(
           "div",
+          { class: `fsa-inspector__content fsa-inspector__content--${next.content.kind.toLowerCase()}` },
+          el("p", { class: "fsa-inspector__content-summary", text: next.content.summary }),
+          el(
+            "ul",
+            { class: "fsa-inspector__content-rows" },
+            ...next.content.rows.map((row) => el("li", { text: row })),
+          ),
+          el("p", { class: "fsa-inspector__content-note", text: "Illustrative example — no real data exists in this simulation." }),
+        ),
+        el(
+          "div",
           { class: "fsa-inspector__decision-actions" },
           el("button", { class: "fsa-btn fsa-btn--approve", type: "button", text: "Release", on: { click: () => decide("RELEASED") } }),
           el("button", { class: "fsa-btn fsa-btn--refuse", type: "button", text: "Refuse", on: { click: () => decide("REFUSED") } }),

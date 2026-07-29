@@ -84,6 +84,28 @@ export type ProjectApprovalStatus = "PENDING" | "APPROVED" | "REFUSED";
 
 export type CrateStatus = "HELD" | "RELEASED" | "REFUSED";
 
+/**
+ * Whether a crate's example content is safe to release at a glance:
+ * aggregate values that describe the cohort, or row-level records that
+ * identify individuals. This is the real judgment Gate 2 makes — see
+ * `src/sim/crateContent.ts` and SIMPLIFICATIONS.md.
+ */
+export type CrateContentKind = "AGGREGATE" | "ROW_LEVEL";
+
+/**
+ * A concrete, illustrative example of what a crate holds, so the customs
+ * inspector's decision is about real-looking content rather than an
+ * abstract status. Generated once, at seal time, from the sim's own seeded
+ * RNG (never mutated afterwards — see honesty rule 4: a decision, never a
+ * transformation). Synthetic and disclosed as such; no real data exists
+ * anywhere in this application.
+ */
+export interface CrateContent {
+  readonly kind: CrateContentKind;
+  readonly summary: string;
+  readonly rows: readonly string[];
+}
+
 export interface Tre {
   readonly id: TreId;
   readonly name: string;
@@ -129,6 +151,7 @@ export interface Crate {
   readonly status: CrateStatus;
   readonly createdAtTick: number;
   readonly decidedAtTick: number | null;
+  readonly content: CrateContent;
 }
 
 /** One TRE agent (ferry). Polls on a fixed scaled interval; never triggered by anything crossing the wall inward. */

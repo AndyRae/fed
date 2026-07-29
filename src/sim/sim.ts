@@ -13,6 +13,7 @@ import {
   type Tre,
   type TreId,
 } from "../core/types.ts";
+import { generateCrateContent } from "./crateContent.ts";
 import { getApproval, getCrate, getTask } from "./selectors.ts";
 
 const DEFAULT_POLL_INTERVAL_TICKS = 5;
@@ -283,6 +284,7 @@ function tickOnce(state: SimState): SimState {
           status: "HELD",
           createdAtTick: newTick,
           decidedAtTick: null,
+          content: generateCrateContent(`${state.seed}:${task.id}`),
         };
         next = { ...next, crates: [...next.crates, crate] };
         next = appendEvent(next, { type: "CRATE_SEALED", tick: newTick, crateId: crate.id, taskId: task.id });
