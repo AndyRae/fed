@@ -9,6 +9,7 @@ import { createLabels } from "./engine/labels.ts";
 import { createNightModeController } from "./engine/nightMode.ts";
 import { createPicker, type PickerHandle } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
+import { createSeaController } from "./engine/seaController.ts";
 import { createVaultShimmer } from "./engine/vaultShimmer.ts";
 import { createWeatherController } from "./engine/weatherController.ts";
 import { createWhaleController, type WhaleExclusionZone } from "./engine/whaleController.ts";
@@ -111,6 +112,17 @@ function collectVaultMeshes(root: THREE.Object3D): THREE.Object3D[] {
   return meshes;
 }
 let vaultShimmerHandle = createVaultShimmer(engine, collectVaultMeshes(worldGroup));
+
+/** Extracted for the same reason as collectVaultMeshes just above — rebuildIslandCount needs to find the freshly built worldGroup's own sea mesh again. */
+function findSeaMesh(root: THREE.Object3D): THREE.Mesh {
+  let sea: THREE.Mesh | undefined;
+  root.traverse((object) => {
+    if (!sea && object.userData.kind === "SEA") sea = object as THREE.Mesh;
+  });
+  if (!sea) throw new Error("findSeaMesh: no SEA mesh in this world");
+  return sea;
+}
+let seaControllerHandle = createSeaController(engine, findSeaMesh(worldGroup));
 
 // Shared by the ambient demo's flow controller and every tour's camera
 // resolver, so a TRE's rendered position always matches whichever one is
@@ -572,6 +584,7 @@ function rebuildIslandCount(newCount: number): void {
   whaleHandle.dispose();
   weatherHandle.dispose();
   vaultShimmerHandle.dispose();
+  seaControllerHandle.dispose();
   engine.scene.remove(worldGroup);
 
   DEMO_TRES = ISLAND_ROSTER.slice(0, newCount);
@@ -582,6 +595,7 @@ function rebuildIslandCount(newCount: number): void {
   worldGroup = buildWorld(currentState);
   engine.scene.add(worldGroup);
   vaultShimmerHandle = createVaultShimmer(engine, collectVaultMeshes(worldGroup));
+  seaControllerHandle = createSeaController(engine, findSeaMesh(worldGroup));
   whaleHandle = createWhaleController(engine, { exclusionZones: computeSeaExclusionZones(islandGeometries) });
   weatherHandle = createWeatherController(engine, { exclusionZones: computeSeaExclusionZones(islandGeometries) });
   // Non-null: rebuildIslandCount only ever runs after the throw-if-missing

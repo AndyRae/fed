@@ -6,6 +6,26 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## A calmer, animated sea
+
+The sea's static baked swell is now a gentle, always-animated one: three
+low-amplitude travelling waves summed in a vertex shader (`world/sea.ts`,
+animated by `engine/seaController.ts`), rather than a shape frozen once
+at load. Inspired by a much older, much heavier WebGL ocean demo, but
+deliberately simplified rather than ported: vertical displacement only,
+never a horizontal/Gerstner term, so the surface can never read as
+"choppy" — that's a property of the shape, not a tuned-down dial. Same
+blue as before; no reflections, no foam, no skybox. Injected into the
+existing `MeshStandardMaterial` via `onBeforeCompile` rather than a
+bespoke shader material, so the sea keeps the ordinary lighting/shadow/
+fog pipeline the rest of the world already uses.
+
+CLAUDE.md's own "Visual language" section already names waves as an
+example of decorative ambient motion that's allowed, provided it stays
+visually subordinate — no doctrine change needed here, unlike the
+orbiting camera. Verified live that the shader compiles without error and
+`uTime` genuinely advances frame to frame, not just that the code typechecks.
+
 ## A project-centric view at the quay
 
 Click the researcher's quay and its inspector panel now shows the
