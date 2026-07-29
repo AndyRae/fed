@@ -18,10 +18,14 @@ const SEA_ROUTE_HEIGHT = 0.9;
 
 const TRACK_RADIAL_SEGMENTS = 8;
 const TUBULAR_SEGMENTS_PER_LEG = 6;
-// A little more gentle than a first pass had it (0.22) — thin enough that
-// the ferry and egress tracks read as lanes on a chart rather than
-// dominating the view between mainland and island.
-const PHYSICAL_TRACK_RADIUS = 0.14;
+// Thinner again than the previous pass (0.22, then 0.14) plus a little
+// transparency (see buildTrack's own material below) — feedback was that
+// even 0.14 still read as a rail you'd ride, not a path something else
+// travels along. The claim these tracks make is "a route exists and is
+// inspectable", not "here is a physical rope"; a lighter touch says that
+// more honestly.
+const PHYSICAL_TRACK_RADIUS = 0.08;
+const TRACK_OPACITY = 0.7;
 
 function toVector3(point: Vec3, height: number): THREE.Vector3 {
   return new THREE.Vector3(point.x, point.y + height, point.z);
@@ -38,9 +42,11 @@ function buildCurvePath(path: readonly Vec3[], height: number): THREE.CurvePath<
 
 /**
  * A real tube with visible thickness, not a hairline — modelled on
- * PGSimCity's data tracks. The ferry and egress routes are things a ferry
- * or a crate actually rides, so they render solid and lit from within (a
- * bit of emissive glow) to read as "live conduits".
+ * PGSimCity's data tracks, but thin and slightly translucent (see
+ * PHYSICAL_TRACK_RADIUS/TRACK_OPACITY above) so the ferry and egress
+ * routes read as a path something travels, not a rail it rides on.
+ * Still lit from within (a bit of emissive glow) so it's legible as a
+ * live conduit, just a gentle one.
  */
 function buildTrack(path: readonly Vec3[], height: number, color: number, kind: string, treId: TreId): THREE.Mesh {
   const curvePath = buildCurvePath(path, height);
@@ -49,9 +55,11 @@ function buildTrack(path: readonly Vec3[], height: number, color: number, kind: 
   const material = new THREE.MeshStandardMaterial({
     color,
     emissive: color,
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 0.4,
     roughness: 0.35,
     metalness: 0.1,
+    transparent: true,
+    opacity: TRACK_OPACITY,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.userData.kind = kind;

@@ -46,12 +46,14 @@ describe("buildFerryRouteLine", () => {
     expect(line.userData.treId).toBe("tre-a");
   });
 
-  it("renders as a real, solid tube — a visible track, not a hairline", () => {
+  it("renders as a real tube, not a hairline — thin and slightly translucent, a path rather than a rail", () => {
     const line = buildFerryRouteLine(island);
     const geometry = line.geometry as THREE.TubeGeometry;
-    expect(geometry.parameters.radius).toBeGreaterThan(0.08);
+    expect(geometry.parameters.radius).toBeGreaterThan(0.04);
     const material = line.material as THREE.MeshStandardMaterial;
-    expect(material.transparent).toBe(false);
+    expect(material.transparent).toBe(true);
+    expect(material.opacity).toBeGreaterThan(0);
+    expect(material.opacity).toBeLessThan(1);
   });
 });
 

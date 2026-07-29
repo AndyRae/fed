@@ -222,14 +222,20 @@ const inspector = mountInspectorPanel(document.body, {
 // protocol concept, just a UI knob layered on top of the already-scaled
 // time the HUD discloses (honesty rule 7: the choreography is compressed
 // either way; this only changes by how much). Every interval this demo
-// schedules is one of the BASE_*_MS constants below divided by simSpeed,
-// so 1x — the default — reproduces exactly the pacing this demo always
-// ran at. setSimSpeed (defined near the timers it rebuilds) is the only
-// place simSpeed is ever assigned.
-const BASE_SPAWN_INTERVAL_MS = 2400;
-const BASE_TICK_INTERVAL_MS = 260;
-const BASE_GATE1_DELAY_MS = 700;
-const BASE_GATE2_DELAY_MS = 1600;
+// schedules is one of the BASE_*_MS constants below divided by simSpeed.
+// setSimSpeed (defined near the timers it rebuilds) is the only place
+// simSpeed is ever assigned.
+//
+// Doubled across the board (2400/260/700/1600/900 before) — feedback was
+// that even the slowest (1×) speed still moved fast enough to read as
+// urgent rather than considered, and a real safe-project or safe-output
+// decision should never feel like it's racing the visitor. Halving the
+// pace like this keeps the whole 1×-6× range's relative shape, just
+// slower throughout.
+const BASE_SPAWN_INTERVAL_MS = 4800;
+const BASE_TICK_INTERVAL_MS = 520;
+const BASE_GATE1_DELAY_MS = 1400;
+const BASE_GATE2_DELAY_MS = 3200;
 const MIN_SPEED = 1;
 const MAX_SPEED = 6;
 let simSpeed = MIN_SPEED;
@@ -240,10 +246,16 @@ let simSpeed = MIN_SPEED;
  * numbers, not track each other 1:1. Each project's own tasks are spread
  * out over time rather than all submitted in the same instant, so the
  * demo reads as a project's ongoing work rather than a single burst.
+ * Tuned so one project's own analyses, summed across every island it
+ * targets, land around 100× its own count at the default island count
+ * (see DEFAULT_ISLAND_COUNT) — feedback was that a real research
+ * programme runs far more analyses per approved project than the
+ * previous 3-9 (worth roughly 10× once multiplied across islands), not
+ * a number close to 1:1.
  */
-const MIN_TASKS_PER_PROJECT = 3;
-const MAX_TASKS_PER_PROJECT = 9;
-const BASE_TASK_STAGGER_MS = 900;
+const MIN_TASKS_PER_PROJECT = 35;
+const MAX_TASKS_PER_PROJECT = 65;
+const BASE_TASK_STAGGER_MS = 1800;
 
 const statsPanel = mountStatsPanel(document.body, {
   getState: () => currentState,
