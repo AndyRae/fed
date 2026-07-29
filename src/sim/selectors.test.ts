@@ -7,7 +7,7 @@ import {
   submitTask,
   tick,
 } from "./sim.ts";
-import { computeActivityStats, heldCratesForTre, pendingApprovalsForTre, releasedIslandCountForProject } from "./selectors.ts";
+import { computeActivityStats, computeIslandLedger, heldCratesForTre, pendingApprovalsForTre, releasedIslandCountForProject } from "./selectors.ts";
 
 function freshState() {
   return createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }], pollIntervalTicks: 1 });
@@ -238,5 +238,69 @@ describe("releasedIslandCountForProject", () => {
     }
     expect(releasedIslandCountForProject(state, "p1")).toBe(1);
     expect(releasedIslandCountForProject(state, "p2")).toBe(1);
+  });
+});
+
+describe("computeIslandLedger", () => {
+  it("is all zeros for an island that has seen nothing", () => {
+    expect(computeIslandLedger(freshState(), "tre-a")).toEqual({
+      treId: "tre-a",
+      projectsSeen: 0,
+      gate1Approved: 0,
+      gate1Refused: 0,
+      tasksInFlight: 0,
+      analysesRun: 0,
+      gate2Released: 0,
+      gate2Refused: 0,
+    });
+  });
+
+  it("never counts a project that targeted only the other island — honesty rule 6, concretely", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-b"] });
+    expect(computeIslandLedger(state, "tre-a").projectsSeen).toBe(0);
+    expect(computeIslandLedger(state, "tre-b").projectsSeen).toBe(1);
+  });
+
+  it("counts each island's own Gate 1 decision separately, even for the same project", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "REFUSED", decidedBy: "H" });
+
+    const ledgerA = computeIslandLedger(state, "tre-a");
+    expect(ledgerA.projectsSeen).toBe(1);
+    expect(ledgerA.gate1Approved).toBe(1);
+    expect(ledgerA.gate1Refused).toBe(0);
+
+    const ledgerB = computeIslandLedger(state, "tre-b");
+    expect(ledgerB.projectsSeen).toBe(1);
+    expect(ledgerB.gate1Approved).toBe(0);
+    expect(ledgerB.gate1Refused).toBe(1);
+  });
+
+  it("never counts another island's own tasks or crates", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = submitTask(state, { id: "ta", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "tb", projectId: "p1", treId: "tre-b" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 5);
+
+    const crateA = state.crates.find((c) => c.treId === "tre-a")!;
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    // tre-b's own crate is left HELD.
+
+    const ledgerA = computeIslandLedger(state, "tre-a");
+    expect(ledgerA.analysesRun).toBe(1);
+    expect(ledgerA.gate2Released).toBe(1);
+    expect(ledgerA.gate2Refused).toBe(0);
+
+    const ledgerB = computeIslandLedger(state, "tre-b");
+    expect(ledgerB.analysesRun).toBe(1);
+    expect(ledgerB.gate2Released).toBe(0);
+    expect(ledgerB.gate2Refused).toBe(0);
+    expect(ledgerB.tasksInFlight).toBe(0); // it reached AWAITING_OUTPUT_REVIEW, not in-flight
   });
 });

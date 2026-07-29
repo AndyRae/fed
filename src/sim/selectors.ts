@@ -84,3 +84,38 @@ export function computeActivityStats(state: SimState): ActivityStats {
     gate2Refused: state.crates.filter((c) => c.status === "REFUSED").length,
   };
 }
+
+/**
+ * This island's own ledger — see IDEAS.md "An island's own ledger" — the
+ * same shape as ActivityStats, scoped to one TRE instead of the whole
+ * world. Unlike computeActivityStats (an observer's dashboard, explicitly
+ * not a capability any island has), this *is* meant to stand for what a
+ * single island can genuinely see: its own record, and only its own.
+ * `projectsSeen` reads the approvals table rather than `state.projects`,
+ * on purpose — a project that never targeted this TRE at all should never
+ * appear in its ledger, even if it targeted some other island.
+ */
+export interface IslandLedger {
+  readonly treId: TreId;
+  readonly projectsSeen: number;
+  readonly gate1Approved: number;
+  readonly gate1Refused: number;
+  readonly tasksInFlight: number;
+  readonly analysesRun: number;
+  readonly gate2Released: number;
+  readonly gate2Refused: number;
+}
+
+export function computeIslandLedger(state: SimState, treId: TreId): IslandLedger {
+  const approvalsHere = state.approvals.filter((a) => a.treId === treId);
+  return {
+    treId,
+    projectsSeen: approvalsHere.length,
+    gate1Approved: approvalsHere.filter((a) => a.status === "APPROVED").length,
+    gate1Refused: approvalsHere.filter((a) => a.status === "REFUSED").length,
+    tasksInFlight: state.tasks.filter((t) => t.treId === treId && IN_FLIGHT_TASK_STATUSES.includes(t.status)).length,
+    analysesRun: state.tasks.filter((t) => t.treId === treId && RAN_TASK_STATUSES.includes(t.status)).length,
+    gate2Released: state.crates.filter((c) => c.treId === treId && c.status === "RELEASED").length,
+    gate2Refused: state.crates.filter((c) => c.treId === treId && c.status === "REFUSED").length,
+  };
+}

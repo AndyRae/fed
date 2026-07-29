@@ -6,6 +6,26 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## An island's own ledger
+
+Click an island's own land (not a specific landmark on it) and its
+inspector panel now shows a read-only tally: projects seen, safe project
+decided (approved/refused), tasks in flight, analyses run, safe output
+decided (released/refused) — `computeIslandLedger` (`src/sim/
+selectors.ts`), the same shape as the existing observer-only
+`computeActivityStats` but scoped to one `treId` instead of the whole
+world. `projectsSeen` deliberately reads the approvals table rather than
+`state.projects`, so a project that never targeted this island doesn't
+appear in its ledger even if it targeted some other one.
+
+The point isn't the numbers so much as the shape of the claim they make:
+this card can only ever show one island's own record, never a shared or
+combined view — honesty rule 6 ("islands are mutually invisible") made
+into something clickable, rather than a claim CLAUDE.md's prose asks a
+reader to take on faith. Verified live that two islands' own ledgers
+genuinely diverge over time (different Gate 1 refusals, different
+analysis counts) rather than coincidentally tracking each other.
+
 ## A gently orbiting overview camera
 
 A 🌐 toggle next to night mode: the default view on load is a slow,

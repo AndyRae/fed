@@ -1,7 +1,7 @@
 import type * as THREE from "three";
 import { explanationForKind } from "../core/explanations.ts";
 import type { CrateId, ProjectId, SimState, TreId } from "../core/types.ts";
-import { getCrate, heldCratesForTre, pendingApprovalsForTre } from "../sim/selectors.ts";
+import { computeIslandLedger, getCrate, heldCratesForTre, pendingApprovalsForTre } from "../sim/selectors.ts";
 import { clear, el, setText } from "./dom.ts";
 
 /**
@@ -164,6 +164,43 @@ export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOp
     );
   }
 
+  /** A row of this island's own ledger — see IDEAS.md "An island's own ledger". Read-only: unlike renderGate1Decision/renderGate2Decision there's nothing to decide here, so it never re-renders itself; re-clicking the island refreshes it via a fresh show(), same as everything else in this panel. */
+  function ledgerRow(label: string, value: string): HTMLElement {
+    return el(
+      "div",
+      { class: "fsa-inspector__ledger-row" },
+      el("span", { class: "fsa-inspector__ledger-label", text: label }),
+      el("span", { class: "fsa-inspector__ledger-value", text: value }),
+    );
+  }
+
+  /** This island's own tally — computeIslandLedger scoped to this one treId. The point isn't the numbers so much as the shape of the claim: this card can only ever show one island's own record, never a shared or combined one — honesty rule 6, made clickable. */
+  function renderIslandLedger(treId: TreId): void {
+    clear(decision);
+    if (!options.getState) return;
+    const ledger = computeIslandLedger(options.getState(), treId);
+    decision.append(
+      el(
+        "div",
+        { class: "fsa-inspector__decision-card" },
+        el("p", { class: "fsa-inspector__decision-lead", text: "This island's own ledger" }),
+        el(
+          "div",
+          { class: "fsa-inspector__ledger-rows" },
+          ledgerRow("Projects seen", String(ledger.projectsSeen)),
+          ledgerRow("Safe project decided", `${ledger.gate1Approved} approved · ${ledger.gate1Refused} refused`),
+          ledgerRow("Tasks in flight", String(ledger.tasksInFlight)),
+          ledgerRow("Analyses run", String(ledger.analysesRun)),
+          ledgerRow("Safe output decided", `${ledger.gate2Released} released · ${ledger.gate2Refused} refused`),
+        ),
+        el("p", {
+          class: "fsa-inspector__ledger-note",
+          text: "This island's own record — no other island's ledger is visible from here.",
+        }),
+      ),
+    );
+  }
+
   function show(object: THREE.Object3D): void {
     const kind = object.userData.kind as string | undefined;
     const explanation = kind ? explanationForKind(kind) : undefined;
@@ -183,6 +220,7 @@ export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOp
     const treId = object.userData.treId as TreId | undefined;
     if (treId && kind === "GATE1_HARBOURMASTER") renderGate1Decision(treId);
     else if (treId && kind === "GATE2_INSPECTOR") renderGate2Decision(treId);
+    else if (treId && kind === "ISLAND_LAND") renderIslandLedger(treId);
 
     setVisible(true);
   }
