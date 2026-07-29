@@ -3,11 +3,11 @@ import "./ui/styles.css";
 import type * as THREE from "three";
 import { explanationForKind } from "./core/explanations.ts";
 import type { SimState, TreId } from "./core/types.ts";
-import { createCameraRig } from "./engine/cameraRig.ts";
+import { createCameraRig, type CameraPoseVec } from "./engine/cameraRig.ts";
 import { createFlowController, type FlowController } from "./engine/flowController.ts";
 import { createLabels } from "./engine/labels.ts";
 import { createNightModeController } from "./engine/nightMode.ts";
-import { createPicker } from "./engine/picking.ts";
+import { createPicker, type PickerHandle } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createVaultShimmer } from "./engine/vaultShimmer.ts";
 import { createWhaleController, type WhaleExclusionZone } from "./engine/whaleController.ts";
@@ -23,7 +23,7 @@ import { startTourCard } from "./ui/tourCard.ts";
 import { playTour } from "./ui/tourPlayer.ts";
 import { journeyOfATaskTour, theResultThatNeverLeftTour } from "./ui/tours.ts";
 import type { Tour } from "./ui/tourTypes.ts";
-import { mainlandGeometry } from "./world/layout.ts";
+import { mainlandGeometry, type IslandGeometry } from "./world/layout.ts";
 import { MAINLAND_RADIUS } from "./world/mainland.ts";
 import { buildWorld, computeIslandGeometries } from "./world/world.ts";
 
@@ -34,11 +34,24 @@ if (!container) {
   throw new Error("#app root element is missing");
 }
 
-// Kept to one island for faster iteration during active development —
-// buildWorld/computeIslandGeometries/the flow controller are all already
-// generic over an arbitrary TRE count, so restoring more islands later is
-// just growing this list. See CLAUDE.md's world metaphor table.
-const DEMO_TRES = [{ id: "tre-a", name: "Isle of Ailsa" }];
+// The full roster a visitor's islands slider can draw from (see
+// rebuildIslandCount below and IDEAS.md "Toggle how many islands there
+// are") — buildWorld/computeIslandGeometries/the flow controller are all
+// already generic over an arbitrary TRE count. DEMO_TRES is always a
+// front slice of this list, so "tre-a" is present at every count.
+const ISLAND_ROSTER: readonly { id: TreId; name: string }[] = [
+  { id: "tre-a", name: "Isle of Ailsa" },
+  { id: "tre-b", name: "Isle of Barra" },
+  { id: "tre-c", name: "Isle of Coll" },
+  { id: "tre-d", name: "Isle of Eigg" },
+  { id: "tre-e", name: "Isle of Foula" },
+  { id: "tre-f", name: "Isle of Gigha" },
+];
+const MIN_ISLANDS = 1;
+const MAX_ISLANDS = ISLAND_ROSTER.length;
+const DEFAULT_ISLAND_COUNT = 3;
+
+let DEMO_TRES = ISLAND_ROSTER.slice(0, DEFAULT_ISLAND_COUNT);
 
 const STUDY_NAMES = [
   "Cardiovascular Risk Study",
@@ -66,23 +79,28 @@ cameraRig.setPose({
   target: { x: 0, y: 0, z: -5 },
 });
 
-const worldGroup = buildWorld(currentState);
+let worldGroup = buildWorld(currentState);
 engine.scene.add(worldGroup);
 
 // Ambient decorative motion, entirely independent of SimState — see
 // CLAUDE.md "Visual language" and vaultShimmer.ts's own doc comment:
 // rotation only, in place, never suggesting the vault emits or moves
-// anything (honesty rule 2).
-const vaultMeshes: THREE.Object3D[] = [];
-worldGroup.traverse((object) => {
-  if (object.userData.kind === "VAULT") vaultMeshes.push(object);
-});
-createVaultShimmer(engine, vaultMeshes);
+// anything (honesty rule 2). Extracted into a function, not just inline at
+// startup, because rebuildIslandCount below needs to redo this against a
+// freshly built worldGroup every time the islands slider changes.
+function collectVaultMeshes(root: THREE.Object3D): THREE.Object3D[] {
+  const meshes: THREE.Object3D[] = [];
+  root.traverse((object) => {
+    if (object.userData.kind === "VAULT") meshes.push(object);
+  });
+  return meshes;
+}
+let vaultShimmerHandle = createVaultShimmer(engine, collectVaultMeshes(worldGroup));
 
 // Shared by the ambient demo's flow controller and every tour's camera
 // resolver, so a TRE's rendered position always matches whichever one is
 // currently addressing it — see world.ts's computeIslandGeometries doc.
-const islandGeometries = computeIslandGeometries(DEMO_TRES);
+let islandGeometries = computeIslandGeometries(DEMO_TRES);
 let flowController: FlowController = createFlowController(engine, islandGeometries, () => currentState);
 
 // A rare easter egg, entirely independent of SimState — it reads no
@@ -90,14 +108,22 @@ let flowController: FlowController = createFlowController(engine, islandGeometri
 // mainland's coastline and every island's wall (a margin beyond each
 // one's real radius) so it only ever surfaces in open water, never
 // anywhere that could read as crossing a boundary this world takes
-// seriously.
-const whaleExclusionZones: WhaleExclusionZone[] = [
-  { x: mainlandGeometry.center.x, z: mainlandGeometry.center.z, radius: MAINLAND_RADIUS + 6 },
-  ...Array.from(islandGeometries.values()).map((island) => ({ x: island.center.x, z: island.center.z, radius: island.wallRadius + 6 })),
-];
-createWhaleController(engine, { exclusionZones: whaleExclusionZones });
+// seriously. Also extracted into a function for rebuildIslandCount's sake.
+function computeWhaleExclusionZones(geometries: ReadonlyMap<TreId, IslandGeometry>): WhaleExclusionZone[] {
+  return [
+    { x: mainlandGeometry.center.x, z: mainlandGeometry.center.z, radius: MAINLAND_RADIUS + 6 },
+    ...Array.from(geometries.values()).map((island) => ({ x: island.center.x, z: island.center.z, radius: island.wallRadius + 6 })),
+  ];
+}
+let whaleHandle = createWhaleController(engine, { exclusionZones: computeWhaleExclusionZones(islandGeometries) });
 
-const treNames = new Map(DEMO_TRES.map((t) => [t.id, t.name]));
+const treNames = new Map<TreId, string>();
+/** Keeps treNames in sync with DEMO_TRES — mutates the same Map instance in place (never reassigned) so inspectorPanel.ts, which was handed this exact Map once at mount, always sees the current roster without needing to be remounted. */
+function syncTreNames(): void {
+  treNames.clear();
+  for (const t of DEMO_TRES) treNames.set(t.id, t.name);
+}
+syncTreNames();
 
 /**
  * Curated landmark subset for persistent floating labels — every named
@@ -118,30 +144,34 @@ const LABELLED_KINDS = new Set([
   "QUAY_OFFICE",
   "RESEARCHER_QUARTER",
 ]);
-const labelTargets: { object: typeof worldGroup; text: string }[] = [];
-worldGroup.traverse((object) => {
-  const kind = object.userData.kind as string | undefined;
-  if (!kind) return;
+/** Extracted (rather than a one-off traversal) so rebuildIslandCount can redo it against a freshly built worldGroup — reads the live treNames Map, so it always reflects the current roster. */
+function collectLabelTargets(root: THREE.Object3D): { object: THREE.Object3D; text: string }[] {
+  const targets: { object: THREE.Object3D; text: string }[] = [];
+  root.traverse((object) => {
+    const kind = object.userData.kind as string | undefined;
+    if (!kind) return;
 
-  // The whole-island and whole-mainland labels use each TRE's real name
-  // rather than explanations.ts's generic title, so "Isle of Ailsa" reads
-  // above the island itself and "The mainland" above the mainland.
-  if (kind === "TRE_LABEL_ANCHOR") {
-    const treId = object.userData.treId as TreId;
-    labelTargets.push({ object, text: treNames.get(treId) ?? treId });
-    return;
-  }
-  if (kind === "MAINLAND_LABEL_ANCHOR") {
-    labelTargets.push({ object, text: explanationForKind("MAINLAND_LAND")?.title ?? "The mainland" });
-    return;
-  }
+    // The whole-island and whole-mainland labels use each TRE's real name
+    // rather than explanations.ts's generic title, so "Isle of Ailsa" reads
+    // above the island itself and "The mainland" above the mainland.
+    if (kind === "TRE_LABEL_ANCHOR") {
+      const treId = object.userData.treId as TreId;
+      targets.push({ object, text: treNames.get(treId) ?? treId });
+      return;
+    }
+    if (kind === "MAINLAND_LABEL_ANCHOR") {
+      targets.push({ object, text: explanationForKind("MAINLAND_LAND")?.title ?? "The mainland" });
+      return;
+    }
 
-  if (!LABELLED_KINDS.has(kind)) return;
-  const explanation = explanationForKind(kind);
-  if (!explanation) return;
-  labelTargets.push({ object, text: explanation.title });
-});
-createLabels(engine, container, labelTargets);
+    if (!LABELLED_KINDS.has(kind)) return;
+    const explanation = explanationForKind(kind);
+    if (!explanation) return;
+    targets.push({ object, text: explanation.title });
+  });
+  return targets;
+}
+let labelsHandle = createLabels(engine, container, collectLabelTargets(worldGroup));
 
 // Whether the visitor currently has manual control of both gates — see the
 // HUD's ⚖ toggle below. Declared this early so the inspector's decision UI
@@ -149,6 +179,16 @@ createLabels(engine, container, labelTargets);
 // up further down) always sees a real value rather than a forward
 // reference to an uninitialised binding.
 let manualGatesEnabled = false;
+
+// Bumped by rebuildIslandCount every time the ambient world resets for a
+// new island count. A setTimeout scheduled against the old world (a
+// staggered task submission, a delayed gate decision) captures this value
+// at schedule time and checks it again when it fires — since
+// rebuildIslandCount also resets projectCounter back to 0, a stale timer's
+// captured projectId/treId could otherwise coincidentally match a
+// same-named project or approval in the *new* world and corrupt it,
+// rather than just erroring on one that's plainly gone.
+let ambientGeneration = 0;
 
 const inspector = mountInspectorPanel(document.body, {
   treNames,
@@ -190,19 +230,24 @@ const BASE_TASK_STAGGER_MS = 900;
 const statsPanel = mountStatsPanel(document.body, {
   getState: () => currentState,
   speed: { min: MIN_SPEED, max: MAX_SPEED, initial: simSpeed, onChange: setSimSpeed },
+  islands: { min: MIN_ISLANDS, max: MAX_ISLANDS, initial: DEFAULT_ISLAND_COUNT, onChange: rebuildIslandCount },
 });
 
-const picker = createPicker({
-  engine,
-  root: worldGroup,
-  onHoverChange: (object) => {
-    engine.renderer.domElement.style.cursor = object ? "pointer" : "";
-  },
-  onSelect: (object) => {
-    if (object) inspector.show(object);
-    else inspector.hide();
-  },
-});
+/** Extracted so rebuildIslandCount can recreate the picker bound to a freshly built worldGroup — createPicker captures `root` once at construction, so a replaced world needs a replaced picker, not a mutated one. */
+function buildPicker(root: THREE.Object3D): PickerHandle {
+  return createPicker({
+    engine,
+    root,
+    onHoverChange: (object) => {
+      engine.renderer.domElement.style.cursor = object ? "pointer" : "";
+    },
+    onSelect: (object) => {
+      if (object) inspector.show(object);
+      else inspector.hide();
+    },
+  });
+}
+let picker = buildPicker(worldGroup);
 
 // All randomness in this ambient demo goes through this one seeded RNG —
 // see CLAUDE.md "Simulation model". Drives cosmetic choices (which study/
@@ -239,7 +284,13 @@ const GATE2_REFUSAL_RATE = 0.12;
  */
 function scheduleProjectApproval(projectId: string, treId: TreId, decidedBy: string, delayMs: number): void {
   const decision: "APPROVED" | "REFUSED" = demoRng() < GATE1_REFUSAL_RATE ? "REFUSED" : "APPROVED";
+  const generation = ambientGeneration;
   setTimeout(() => {
+    // rebuildIslandCount resets projectCounter, so a stale timer from a
+    // world that's since been reset could otherwise fire against a
+    // same-named project in the *new* one — the generation guard rejects
+    // it outright rather than relying on id equality alone.
+    if (generation !== ambientGeneration) return;
     if (manualGatesEnabled) return;
     if (getApproval(currentState, projectId, treId)?.status !== "PENDING") return;
     currentState = decideProjectApproval(currentState, {
@@ -272,11 +323,13 @@ function scheduleNewOutputReviews(): void {
     if (crate.status !== "HELD" || scheduledForReview.has(crate.id)) continue;
     scheduledForReview.add(crate.id);
     const decision: "RELEASED" | "REFUSED" = demoRng() < GATE2_REFUSAL_RATE ? "REFUSED" : "RELEASED";
+    const generation = ambientGeneration;
     // Long enough that the crate has already visibly arrived and parked at
     // this island's own customs hall (the flow controller's hold leg is
     // well under a second) before "a human" decides — honesty rule 3, the
     // queue must visibly hold, not just skip straight to the outcome.
     setTimeout(() => {
+      if (generation !== ambientGeneration) return; // see scheduleProjectApproval's own comment on this guard
       if (manualGatesEnabled) return;
       if (getCrate(currentState, crate.id)?.status !== "HELD") return;
       currentState = decideOutputReview(currentState, { crateId: crate.id, decision });
@@ -349,8 +402,10 @@ function spawnDemoProject(): void {
  */
 function scheduleProjectTasks(projectId: string, treId: TreId): void {
   const taskCount = MIN_TASKS_PER_PROJECT + Math.floor(demoRng() * (MAX_TASKS_PER_PROJECT - MIN_TASKS_PER_PROJECT + 1));
+  const generation = ambientGeneration;
   for (let i = 0; i < taskCount; i++) {
     setTimeout(() => {
+      if (generation !== ambientGeneration) return; // see scheduleProjectApproval's own comment on this guard
       currentState = submitTask(currentState, { id: `task-${projectId}-${treId}-${i}`, projectId, treId });
     }, (i * BASE_TASK_STAGGER_MS) / simSpeed);
   }
@@ -402,6 +457,94 @@ function setSimSpeed(next: number): void {
 
 const CAMERA_FLIGHT_SECONDS = 1.5;
 
+// The free-roam camera's own starting shot — tuned for DEFAULT_ISLAND_COUNT
+// (3 islands, the pre-existing 110°-spread layout). overviewPoseForRingRadius
+// scales it for other island counts; see rebuildIslandCount.
+const BASE_OVERVIEW_POSE: CameraPoseVec = {
+  position: { x: 0, y: 50, z: 60 },
+  target: { x: 0, y: 0, z: -5 },
+};
+const BASE_OVERVIEW_RING_RADIUS = 26; // mirrors layout.ts's ISLAND_RING_RADIUS baseline
+
+/**
+ * Pulls the free-roam camera back proportionally to how wide the current
+ * island crescent actually is, so a larger island count doesn't leave outer
+ * islands outside the initial view — a visitor who drags the slider up
+ * should be able to see the isolation claim (honesty rules 1 and 6) across
+ * every island at once, not just the one nearest the mainland. Scaled by a
+ * sub-linear power (0.7), not linearly: gentle enough that a modest island
+ * count doesn't zoom out further than it needs to, while still keeping the
+ * largest roster (6 islands) inside OrbitControls' own maxDistance (see
+ * cameraRig.ts, tuned alongside this constant).
+ */
+function overviewPoseForRingRadius(geometries: ReadonlyMap<TreId, IslandGeometry>): CameraPoseVec {
+  let maxRadius = BASE_OVERVIEW_RING_RADIUS;
+  for (const island of geometries.values()) {
+    const radius = Math.hypot(island.center.x, island.center.z);
+    if (radius > maxRadius) maxRadius = radius;
+  }
+  const scale = Math.pow(maxRadius / BASE_OVERVIEW_RING_RADIUS, 0.7);
+  return {
+    position: {
+      x: 0,
+      y: BASE_OVERVIEW_POSE.position.y * scale,
+      z: BASE_OVERVIEW_POSE.position.z * scale,
+    },
+    target: BASE_OVERVIEW_POSE.target,
+  };
+}
+
+/** Set while a tour has taken over the camera and world — see startTour/onExit just below. Guards rebuildIslandCount so a mid-tour slider drag can't rebuild the very world the tour is driving. */
+let tourActive = false;
+
+/**
+ * Rebuilds the whole ambient world for a new island count, drawn from
+ * ISLAND_ROSTER's front slice — see IDEAS.md "Toggle how many islands
+ * there are". This is a full reset (fresh SimState, geometry, flow
+ * controller, picker, decorative controllers) rather than a live migration
+ * of in-flight projects/tasks: there is no sensible mapping from "N
+ * islands' worth of state" onto "M islands' worth of state", so the
+ * ambient demo simply starts over, the same way it does on first load.
+ */
+function rebuildIslandCount(newCount: number): void {
+  if (tourActive || newCount === DEMO_TRES.length) return;
+
+  ambientGeneration++;
+  pauseAmbientDemo();
+  inspector.hide();
+  flowController.dispose();
+  picker.dispose();
+  labelsHandle.dispose();
+  whaleHandle.dispose();
+  vaultShimmerHandle.dispose();
+  engine.scene.remove(worldGroup);
+
+  DEMO_TRES = ISLAND_ROSTER.slice(0, newCount);
+  syncTreNames();
+  currentState = createInitialSimState({ seed: 1, tres: DEMO_TRES, pollIntervalTicks: 2 });
+  islandGeometries = computeIslandGeometries(DEMO_TRES);
+
+  worldGroup = buildWorld(currentState);
+  engine.scene.add(worldGroup);
+  vaultShimmerHandle = createVaultShimmer(engine, collectVaultMeshes(worldGroup));
+  whaleHandle = createWhaleController(engine, { exclusionZones: computeWhaleExclusionZones(islandGeometries) });
+  // Non-null: rebuildIslandCount only ever runs after the throw-if-missing
+  // check above has already passed, on module load.
+  labelsHandle = createLabels(engine, container!, collectLabelTargets(worldGroup));
+  picker = buildPicker(worldGroup);
+  flowController = createFlowController(engine, islandGeometries, () => currentState);
+
+  scheduledForApproval.clear();
+  scheduledForReview.clear();
+  projectCounter = 0;
+
+  cameraRig.flyTo(overviewPoseForRingRadius(islandGeometries), CAMERA_FLIGHT_SECONDS);
+
+  spawnDemoProject();
+  statsPanel.update();
+  resumeAmbientDemo();
+}
+
 /**
  * Starts a tour: pauses the ambient demo and free-roam camera controls so
  * the tour card's cuts aren't fighting either one, and swaps the ambient
@@ -413,6 +556,8 @@ const CAMERA_FLIGHT_SECONDS = 1.5;
  * getState — see the comment below for why the `!` is safe.
  */
 function startTour(tour: Tour): void {
+  tourActive = true;
+  statsPanel.setIslandsEnabled(false);
   pauseAmbientDemo();
   cameraRig.controls.enabled = false;
   picker.setEnabled(false);
@@ -438,6 +583,8 @@ function startTour(tour: Tour): void {
         startFromCurrentEvents: true,
       });
       resumeAmbientDemo();
+      tourActive = false;
+      statsPanel.setIslandsEnabled(true);
     },
   });
 }
@@ -495,6 +642,8 @@ window.ARCHIPELAGO = {
     return flowController;
   },
   engine,
-  picker,
+  get picker() {
+    return picker;
+  },
   tours: { journeyOfATaskTour, theResultThatNeverLeftTour, playTour },
 };

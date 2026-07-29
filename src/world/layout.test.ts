@@ -171,6 +171,65 @@ describe("real geometry: islandGeometry", () => {
   });
 });
 
+describe("crescent scaling: islandGeometry from 1 up to a 6-island roster (IDEAS.md 'toggle island count')", () => {
+  const ROSTER = ["tre-a", "tre-b", "tre-c", "tre-d", "tre-e", "tre-f"];
+
+  function islandsFor(total: number) {
+    return ROSTER.slice(0, total).map((id, i) => islandGeometry(id, i, total));
+  }
+
+  it("never overlaps another island's wall, at any roster size from 1 to 6", () => {
+    for (let total = 1; total <= 6; total++) {
+      const islands = islandsFor(total);
+      for (let i = 0; i < islands.length; i++) {
+        for (let j = i + 1; j < islands.length; j++) {
+          const a = islands[i]!;
+          const b = islands[j]!;
+          expect(distance(a.center, b.center), `total=${total}, ${i} vs ${j}`).toBeGreaterThan(a.wallRadius + b.wallRadius);
+        }
+      }
+    }
+  });
+
+  it("never places an island beside or behind the mainland — the crescent stays within ±90° of dead ahead", () => {
+    for (let total = 1; total <= 6; total++) {
+      for (const island of islandsFor(total)) {
+        const angleDeg = (Math.atan2(island.center.x, island.center.z) * 180) / Math.PI;
+        expect(Math.abs(angleDeg), `total=${total}`).toBeLessThan(90);
+      }
+    }
+  });
+
+  it("renders 1–3 islands at exactly the pre-existing ring radius — the crescent only ever grows relative to before", () => {
+    for (const total of [1, 2, 3]) {
+      for (const island of islandsFor(total)) {
+        expect(distance(island.center, { x: 0, y: 0, z: 0 })).toBeCloseTo(26, 1);
+      }
+    }
+  });
+
+  it("grows the ring radius monotonically as more islands are added, once the crescent's spread has saturated", () => {
+    const ringRadiusOf = (total: number) => distance(islandsFor(total)[0]!.center, { x: 0, y: 0, z: 0 });
+    let previous = ringRadiusOf(3);
+    for (let total = 4; total <= 6; total++) {
+      const current = ringRadiusOf(total);
+      expect(current).toBeGreaterThanOrEqual(previous);
+      previous = current;
+    }
+  });
+
+  it("keeps the dock, customs hall, workshop, and harbourmaster's office valid at every roster size", () => {
+    for (let total = 1; total <= 6; total++) {
+      for (const island of islandsFor(total)) {
+        expect(distance(island.dock, island.center)).toBeCloseTo(island.wallRadius, 5);
+        expect(distance(island.customsHall, island.center)).toBeCloseTo(island.wallRadius, 5);
+        expect(distance(island.workshop, island.center)).toBeLessThan(island.wallRadius);
+        expect(distance(island.harbourmasterOffice, island.center)).toBeLessThan(island.wallRadius);
+      }
+    }
+  });
+});
+
 describe("real geometry: ferryPath", () => {
   const islands = ["tre-a", "tre-b", "tre-c"].map((id, i, all) => islandGeometry(id, i, all.length));
 
@@ -191,6 +250,20 @@ describe("real geometry: ferryPath", () => {
   it("never passes through another island's wall — honesty rule 1", () => {
     for (const island of islands) {
       const others = islands.filter((i) => i.treId !== island.treId);
+      for (const point of ferryPath(island)) {
+        for (const other of others) {
+          expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);
+        }
+      }
+    }
+  });
+
+  it("never passes through another island's wall at the largest roster size either (6 islands)", () => {
+    const sixIslands = ["tre-a", "tre-b", "tre-c", "tre-d", "tre-e", "tre-f"].map((id, i, all) =>
+      islandGeometry(id, i, all.length),
+    );
+    for (const island of sixIslands) {
+      const others = sixIslands.filter((i) => i.treId !== island.treId);
       for (const point of ferryPath(island)) {
         for (const other of others) {
           expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);
@@ -221,6 +294,20 @@ describe("real geometry: egressPath", () => {
   it("never passes through another island's wall — honesty rule 1 and 6", () => {
     for (const island of islands) {
       const others = islands.filter((i) => i.treId !== island.treId);
+      for (const point of egressPath(island)) {
+        for (const other of others) {
+          expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);
+        }
+      }
+    }
+  });
+
+  it("never passes through another island's wall at the largest roster size either (6 islands)", () => {
+    const sixIslands = ["tre-a", "tre-b", "tre-c", "tre-d", "tre-e", "tre-f"].map((id, i, all) =>
+      islandGeometry(id, i, all.length),
+    );
+    for (const island of sixIslands) {
+      const others = sixIslands.filter((i) => i.treId !== island.treId);
       for (const point of egressPath(island)) {
         for (const other of others) {
           expect(distance(point, other.center)).toBeGreaterThan(other.wallRadius);

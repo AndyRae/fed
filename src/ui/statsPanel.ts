@@ -20,14 +20,25 @@ export interface SpeedControlOptions {
   readonly onChange: (speed: number) => void;
 }
 
+/** Same shape as SpeedControlOptions — a live slider, this time over how many islands the ambient demo renders. See IDEAS.md "Toggle how many islands there are" and main.ts's rebuildIslandCount. */
+export interface IslandsControlOptions {
+  readonly min: number;
+  readonly max: number;
+  readonly initial: number;
+  readonly onChange: (count: number) => void;
+}
+
 export interface StatsPanelOptions {
   readonly getState: () => SimState;
   readonly speed: SpeedControlOptions;
+  readonly islands: IslandsControlOptions;
 }
 
 export interface StatsPanelHandle {
   /** Re-reads the latest state and repaints. Call this on the same cadence the ambient demo ticks — the panel has no timer of its own. */
   update(): void;
+  /** Disables the islands slider while a tour has taken over the world (see main.ts's tourActive), so a mid-tour drag can't desync from the count it silently ignores. */
+  setIslandsEnabled(enabled: boolean): void;
   dispose(): void;
 }
 
@@ -50,7 +61,7 @@ export function mountStatsPanel(root: HTMLElement, options: StatsPanelOptions): 
 
   const rows = [projects, gate1, inFlight, analyses, gate2];
 
-  const speedValue = el("span", { class: "fsa-stats__speed-value", text: `${options.speed.initial}×` });
+  const speedValue = el("span", { class: "fsa-stats__slider-value", text: `${options.speed.initial}×` });
   const speedSlider = el("input", {
     type: "range",
     id: "fsa-stats-speed",
@@ -69,10 +80,35 @@ export function mountStatsPanel(root: HTMLElement, options: StatsPanelOptions): 
   });
   const speedRow = el(
     "div",
-    { class: "fsa-stats__speed" },
+    { class: "fsa-stats__slider" },
     el("label", { for: "fsa-stats-speed", text: "Speed" }),
     speedSlider,
     speedValue,
+  );
+
+  const islandsValue = el("span", { class: "fsa-stats__slider-value", text: String(options.islands.initial) });
+  const islandsSlider = el("input", {
+    type: "range",
+    id: "fsa-stats-islands",
+    min: String(options.islands.min),
+    max: String(options.islands.max),
+    step: "1",
+    value: String(options.islands.initial),
+    "aria-label": "Number of islands",
+    on: {
+      input: (event: Event) => {
+        const count = Number((event.target as HTMLInputElement).value);
+        setText(islandsValue, String(count));
+        options.islands.onChange(count);
+      },
+    },
+  });
+  const islandsRow = el(
+    "div",
+    { class: "fsa-stats__slider" },
+    el("label", { for: "fsa-stats-islands", text: "Islands" }),
+    islandsSlider,
+    islandsValue,
   );
 
   const panel = el(
@@ -80,6 +116,7 @@ export function mountStatsPanel(root: HTMLElement, options: StatsPanelOptions): 
     { id: "fsa-stats-panel", class: "fsa-stats" },
     el("div", { class: "fsa-stats__title", text: "Live activity" }),
     speedRow,
+    islandsRow,
     ...rows.map((row) =>
       el("div", { class: "fsa-stats__row" }, el("span", { class: "fsa-stats__label", text: row.label }), row.valueEl),
     ),
@@ -98,6 +135,9 @@ export function mountStatsPanel(root: HTMLElement, options: StatsPanelOptions): 
 
   return {
     update,
+    setIslandsEnabled(enabled: boolean) {
+      islandsSlider.disabled = !enabled;
+    },
     dispose() {
       panel.remove();
     },

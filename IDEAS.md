@@ -37,8 +37,8 @@ project's results from multiple TREs actually combine — something that
 briefly makes felt what `SIMPLIFICATIONS.md`'s "aggregation is a read, not
 a stage" describes abstractly — would cash out "isolated + summary" as an
 experienced moment instead of an explained fact. Needs at least two
-islands approving the same project to be meaningful (see "toggle island
-count" below).
+islands approving the same project to be meaningful — the islands slider
+(CHANGELOG.md) makes that easy to arrange now, just drag it above 1.
 
 ### Discovery rewards
 
@@ -47,19 +47,6 @@ a refused project, or opens night mode — small delight, cheap to build,
 rewards exploring free-roam instead of only tour-hopping.
 
 ## World & federation patterns
-
-### Toggle how many islands there are
-
-`src/world/layout.ts`'s `islandGeometry`/`computeIslandGeometries` are
-already generic over TRE count (index/total spread, non-overlap tested up
-to 3). `src/main.ts` currently hardcodes `DEMO_TRES` to a single island
-"for faster iteration during active development" — the comment there
-already flags this as provisional. A HUD control to add/remove islands at
-runtime would let a visitor see the isolation claim (honesty rules 1 and
-6) at a scale closer to a real multi-TRE deployment, and would make the
-aggregation-payoff idea above land harder. Mostly wiring, not new
-geometry work — the layout math and honesty-rule tests already assume an
-arbitrary count.
 
 ### Other federation patterns, as a genuinely separate mode
 

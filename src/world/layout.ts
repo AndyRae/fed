@@ -141,6 +141,44 @@ export const SEA_LEVEL_Y = 0;
 export const ISLAND_WALL_RADIUS = 11;
 export const ISLAND_RING_RADIUS = 26;
 
+// --- Crescent scaling (IDEAS.md "Toggle how many islands there are") -----
+//
+// islandGeometry is generic over `total`, so a visitor's island-count
+// slider (see main.ts) can ask for anywhere from 1 up to a roster's worth
+// of islands. Two things must both stay true as `total` grows: the layout
+// must still read as a crescent facing the mainland, never wrapping around
+// toward or past it (that would put an island's straight-line route to the
+// quay behind another island, or make it look like the crescent had become
+// a ring); and no two islands' walls may ever overlap. A fixed 110° spread
+// only guarantees that for up to 3 islands (see the comment above) — beyond
+// that, the angular gap between neighbours shrinks below the safe minimum
+// unless the ring itself grows to compensate.
+//
+// ISLAND_ADJACENT_STEP_DEG reproduces the existing 3-island spread exactly
+// (55° × 2 gaps = 110°) for `total` at or below where that stays under the
+// cap, so 1–3 islands render pixel-identical to before this existed.
+// CRESCENT_MAX_SPREAD_DEG then caps the total spread well short of a full
+// semicircle (±90°) so an island can never end up beside or behind the
+// mainland. Once the cap is reached, adjacent gaps shrink as more islands
+// are added, so crescentRingRadius grows exactly enough to keep the
+// resulting chord distance above ISLAND_MIN_SEPARATION — never smaller
+// than ISLAND_RING_RADIUS, so it only ever grows relative to today.
+const ISLAND_ADJACENT_STEP_DEG = 55;
+const CRESCENT_MAX_SPREAD_DEG = 160;
+const ISLAND_MIN_SEPARATION = 2 * ISLAND_WALL_RADIUS + 2;
+
+function crescentSpreadDeg(total: number): number {
+  if (total <= 1) return 0;
+  return Math.min(CRESCENT_MAX_SPREAD_DEG, ISLAND_ADJACENT_STEP_DEG * (total - 1));
+}
+
+function crescentRingRadius(total: number): number {
+  if (total <= 1) return ISLAND_RING_RADIUS;
+  const gapRad = (crescentSpreadDeg(total) / (total - 1)) * (Math.PI / 180);
+  const required = ISLAND_MIN_SEPARATION / (2 * Math.sin(gapRad / 2));
+  return Math.max(ISLAND_RING_RADIUS, required);
+}
+
 export interface MainlandGeometry {
   readonly center: Vec3;
   readonly quayDock: Vec3;
@@ -213,15 +251,16 @@ export interface IslandGeometry {
   readonly harbourmasterOffice: Vec3;
 }
 
-/** Deterministic placement: same id/index/total always yields the same island. Islands fan out toward the mainland so no two walls overlap. */
+/** Deterministic placement: same id/index/total always yields the same island. Islands fan out toward the mainland, in a crescent that never overlaps another island's wall and never wraps around toward or behind the mainland — see the crescent-scaling comment above. */
 export function islandGeometry(treId: TreId, index: number, total: number): IslandGeometry {
-  const spreadDeg = total > 1 ? 110 : 0;
+  const spreadDeg = crescentSpreadDeg(total);
+  const ringRadius = crescentRingRadius(total);
   const angleDeg = total > 1 ? -spreadDeg / 2 + (spreadDeg * index) / (total - 1) : 0;
   const angleRad = (angleDeg * Math.PI) / 180;
   const center: Vec3 = {
-    x: Math.sin(angleRad) * ISLAND_RING_RADIUS,
+    x: Math.sin(angleRad) * ringRadius,
     y: SEA_LEVEL_Y,
-    z: Math.cos(angleRad) * ISLAND_RING_RADIUS,
+    z: Math.cos(angleRad) * ringRadius,
   };
 
   const towardMainland = vecNormalize(vecSub(mainlandGeometry.center, center));

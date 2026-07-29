@@ -44,7 +44,10 @@ export function createCameraRig(engine: Engine): CameraRig {
   controls.dampingFactor = 0.08;
   controls.autoRotate = false;
   controls.minDistance = 4;
-  controls.maxDistance = 110;
+  // Room enough for main.ts's overviewPoseForRingRadius to pull the camera
+  // back far enough to frame the widest island crescent (see IDEAS.md
+  // "Toggle how many islands there are") without this clamping it back in.
+  controls.maxDistance = 140;
   controls.maxPolarAngle = Math.PI * 0.49;
 
   // Google Maps convention, not CAD convention — see PGSimCity's own
