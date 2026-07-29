@@ -27,6 +27,22 @@ A quiet one-time toast the first time a visitor spots the whale, or finds
 a refused project, or opens night mode — small delight, cheap to build,
 rewards exploring free-roam instead of only tour-hopping.
 
+## Navigation
+
+### Vim-style camera keybindings
+
+There's currently no keyboard camera control at all — `helpOverlay.ts`
+says so explicitly ("no walk mode, no fly camera, no WASD, none of that is
+implemented here"), and the camera is mouse-only `OrbitControls` (drag to
+orbit, wheel to zoom, right-drag to pan). `hjkl` for orbit (left/down/up/
+right), plus a couple of keys for zoom, would give a keyboard-only path to
+the same orbit/zoom the mouse already does — not a new fly/walk mode, just
+an alternate input for the existing one. Cheap, self-contained
+(`cameraRig.ts` already owns the `OrbitControls` instance), and doubles as
+a real accessibility win alongside being one visitor's own preference.
+Would need `helpOverlay.ts`'s controls list updated in the same change,
+since its "none of it is implemented" line would otherwise go stale.
+
 ## The vault deserves more presence
 
 ### Give the vault a real moment in the flagship tour
