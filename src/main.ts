@@ -10,6 +10,7 @@ import { createNightModeController } from "./engine/nightMode.ts";
 import { createPicker, type PickerHandle } from "./engine/picking.ts";
 import { createEngine } from "./engine/renderer.ts";
 import { createVaultShimmer } from "./engine/vaultShimmer.ts";
+import { createWeatherController } from "./engine/weatherController.ts";
 import { createWhaleController, type WhaleExclusionZone } from "./engine/whaleController.ts";
 import { createRng } from "./sim/rng.ts";
 import { getApproval, getCrate } from "./sim/selectors.ts";
@@ -112,19 +113,22 @@ let vaultShimmerHandle = createVaultShimmer(engine, collectVaultMeshes(worldGrou
 let islandGeometries = computeIslandGeometries(DEMO_TRES);
 let flowController: FlowController = createFlowController(engine, islandGeometries, () => currentState);
 
-// A rare easter egg, entirely independent of SimState — it reads no
-// protocol state and stands for nothing in it. Kept well clear of the
-// mainland's coastline and every island's wall (a margin beyond each
-// one's real radius) so it only ever surfaces in open water, never
-// anywhere that could read as crossing a boundary this world takes
-// seriously. Also extracted into a function for rebuildIslandCount's sake.
-function computeWhaleExclusionZones(geometries: ReadonlyMap<TreId, IslandGeometry>): WhaleExclusionZone[] {
+// Shared by every rare, purely decorative easter egg that must stay
+// confined to open water — the whale, and now the weather (mist/rain) —
+// entirely independent of SimState, reading no protocol state and
+// standing for nothing in it. Kept well clear of the mainland's coastline
+// and every island's wall (a margin beyond each one's real radius) so
+// nothing ever appears anywhere that could read as crossing a boundary
+// this world takes seriously. Extracted into a function for
+// rebuildIslandCount's sake.
+function computeSeaExclusionZones(geometries: ReadonlyMap<TreId, IslandGeometry>): WhaleExclusionZone[] {
   return [
     { x: mainlandGeometry.center.x, z: mainlandGeometry.center.z, radius: MAINLAND_RADIUS + 6 },
     ...Array.from(geometries.values()).map((island) => ({ x: island.center.x, z: island.center.z, radius: island.wallRadius + 6 })),
   ];
 }
-let whaleHandle = createWhaleController(engine, { exclusionZones: computeWhaleExclusionZones(islandGeometries) });
+let whaleHandle = createWhaleController(engine, { exclusionZones: computeSeaExclusionZones(islandGeometries) });
+let weatherHandle = createWeatherController(engine, { exclusionZones: computeSeaExclusionZones(islandGeometries) });
 
 const treNames = new Map<TreId, string>();
 /** Keeps treNames in sync with DEMO_TRES — mutates the same Map instance in place (never reassigned) so inspectorPanel.ts, which was handed this exact Map once at mount, always sees the current roster without needing to be remounted. */
@@ -525,6 +529,7 @@ function rebuildIslandCount(newCount: number): void {
   picker.dispose();
   labelsHandle.dispose();
   whaleHandle.dispose();
+  weatherHandle.dispose();
   vaultShimmerHandle.dispose();
   engine.scene.remove(worldGroup);
 
@@ -536,7 +541,8 @@ function rebuildIslandCount(newCount: number): void {
   worldGroup = buildWorld(currentState);
   engine.scene.add(worldGroup);
   vaultShimmerHandle = createVaultShimmer(engine, collectVaultMeshes(worldGroup));
-  whaleHandle = createWhaleController(engine, { exclusionZones: computeWhaleExclusionZones(islandGeometries) });
+  whaleHandle = createWhaleController(engine, { exclusionZones: computeSeaExclusionZones(islandGeometries) });
+  weatherHandle = createWeatherController(engine, { exclusionZones: computeSeaExclusionZones(islandGeometries) });
   // Non-null: rebuildIslandCount only ever runs after the throw-if-missing
   // check above has already passed, on module load.
   labelsHandle = createLabels(engine, container!, collectLabelTargets(worldGroup));

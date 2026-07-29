@@ -19,14 +19,6 @@ mute control and to default to off, matching PGSimCity's "audio starts off
 and remembers your choice" precedent and this project's general low-spec
 autoplay caution.
 
-### Weather variety
-
-Occasional atmospheric variation beyond the existing static swell and
-gradient sky/fog — a rain shower, mist rolling in — as another rare,
-purely decorative easter egg in the spirit of the whale
-(`src/engine/whaleController.ts`). Lower priority than sound; mostly worth
-doing if the whale pattern proves popular and a second one is wanted.
-
 ## Narrative payoff
 
 ### Discovery rewards

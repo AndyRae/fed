@@ -6,6 +6,18 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## Weather variety
+
+A rare, purely decorative easter egg in the spirit of the whale
+(`src/engine/whaleController.ts`, which this mirrors closely): every so
+often, a mist bank drifts over a patch of open sea, or a rain shower
+passes over another — one or the other, chosen at random, confined the
+same way the whale is to well clear of every island's wall and the
+mainland's coastline. Reads no SimState and stands for nothing in the
+protocol; motion here is background weather, not a claim about
+federation. See `src/engine/weatherController.ts` and
+`src/world/weather.ts`.
+
 ## A visible moment when aggregation actually happens
 
 The instant a project's released results first converge from more than

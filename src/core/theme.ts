@@ -37,6 +37,9 @@ export const theme = {
     foam: 0xdff3fa,
     /** The whale that occasionally surfaces out in open water (see world/whale.ts) — pure ambient decoration, like the sea's own swell, so it stays within the untrusted role rather than becoming a new one. */
     whale: 0x2b4a5c,
+    /** Occasional mist and rain over open water (see engine/weatherController.ts) — same precedent as whale above: ambient decoration within the untrusted role, not a new one. */
+    mist: 0xdce8ec,
+    rain: 0x9fc7db,
   },
   /** Reserved exclusively for the two human gates: Gate 1 (project approval) and Gate 2 (output review). Never used for anything else. */
   gate: {
