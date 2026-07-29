@@ -6,6 +6,29 @@ of [Keep a Changelog](https://keepachangelog.com/). See CLAUDE.md's own
 belongs, so the rest of the docs can stay written for a reader arriving
 today.
 
+## A project-centric view at the quay
+
+Click the researcher's quay and its inspector panel now shows the
+mirror image of the island ledger: a small list of the most recently
+submitted projects (up to 8, newest first), one of them expanded into
+its own status across every island it targeted — Gate 1 decision per
+island (pending/approved/refused), Gate 2 crate tally per island
+(released/refused/still held), and a released count gathered across all
+of them. Clicking a different project in the list swaps the detail view
+in place, no fresh click on the quay needed. `computeProjectLedger`
+(`src/sim/selectors.ts`).
+
+This is the one view in the whole app allowed to read across islands —
+honesty rule 6's own stated exception ("aggregation of results happens
+at the researcher's quay, after release"), the same one
+`releasedCratesForProject` already exercises for the aggregation-payoff
+flourish. Paired with the island ledger, these are the two sides honesty
+rule 6 cares about keeping apart: what one island can see of its own
+record, and what the quay is allowed to see across all of them.
+Verified live: two different projects at the same quay showed genuinely
+different per-island Gate 1 outcomes and crate tallies, not a shared or
+averaged view.
+
 ## An island's own ledger
 
 Click an island's own land (not a specific landmark on it) and its

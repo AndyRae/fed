@@ -1,4 +1,15 @@
-import type { Crate, CrateId, ProjectApproval, ProjectId, SimState, TaskId, TaskStatus, TesTask, TreId } from "../core/types.ts";
+import type {
+  Crate,
+  CrateId,
+  ProjectApproval,
+  ProjectApprovalStatus,
+  ProjectId,
+  SimState,
+  TaskId,
+  TaskStatus,
+  TesTask,
+  TreId,
+} from "../core/types.ts";
 
 export function getTask(state: SimState, taskId: TaskId): TesTask | undefined {
   return state.tasks.find((t) => t.id === taskId);
@@ -117,5 +128,58 @@ export function computeIslandLedger(state: SimState, treId: TreId): IslandLedger
     analysesRun: state.tasks.filter((t) => t.treId === treId && RAN_TASK_STATUSES.includes(t.status)).length,
     gate2Released: state.crates.filter((c) => c.treId === treId && c.status === "RELEASED").length,
     gate2Refused: state.crates.filter((c) => c.treId === treId && c.status === "REFUSED").length,
+  };
+}
+
+/** One targeted island's own status for a project, from the researcher's side — see ProjectLedger's own doc comment. */
+export interface ProjectIslandStatus {
+  readonly treId: TreId;
+  /** This island's own Gate 1 decision for this project — PENDING until its harbourmaster actually decides, same states as ProjectApproval. */
+  readonly gate1Status: ProjectApprovalStatus;
+  readonly cratesHeld: number;
+  readonly cratesReleased: number;
+  readonly cratesRefused: number;
+}
+
+/**
+ * A project's own status across every island it targeted — see IDEAS.md
+ * "A project-centric view at the quay". The mirror image of IslandLedger:
+ * that one is what a single island can see of its own record; this one is
+ * what the researcher's quay is allowed to see, reading across every
+ * island a project targeted (honesty rule 6's own stated exception —
+ * "Aggregation of results happens at the researcher's quay, after
+ * release" — already exercised by releasedCratesForProject). `undefined`
+ * if the project doesn't exist in this state.
+ */
+export interface ProjectLedger {
+  readonly projectId: ProjectId;
+  readonly name: string;
+  readonly researcher: string;
+  readonly perIsland: readonly ProjectIslandStatus[];
+  /** Same count releasedCratesForProject would give — released crates gathered at the quay so far, across every island. */
+  readonly releasedCount: number;
+}
+
+export function computeProjectLedger(state: SimState, projectId: ProjectId): ProjectLedger | undefined {
+  const project = state.projects.find((p) => p.id === projectId);
+  if (!project) return undefined;
+
+  const perIsland = project.targetTreIds.map((treId): ProjectIslandStatus => {
+    const cratesHere = state.crates.filter((c) => c.projectId === projectId && c.treId === treId);
+    return {
+      treId,
+      gate1Status: getApproval(state, projectId, treId)?.status ?? "PENDING",
+      cratesHeld: cratesHere.filter((c) => c.status === "HELD").length,
+      cratesReleased: cratesHere.filter((c) => c.status === "RELEASED").length,
+      cratesRefused: cratesHere.filter((c) => c.status === "REFUSED").length,
+    };
+  });
+
+  return {
+    projectId,
+    name: project.name,
+    researcher: project.researcher,
+    perIsland,
+    releasedCount: releasedCratesForProject(state, projectId).length,
   };
 }

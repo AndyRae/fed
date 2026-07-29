@@ -1,7 +1,7 @@
 import type * as THREE from "three";
 import { explanationForKind } from "../core/explanations.ts";
 import type { CrateId, ProjectId, SimState, TreId } from "../core/types.ts";
-import { computeIslandLedger, getCrate, heldCratesForTre, pendingApprovalsForTre } from "../sim/selectors.ts";
+import { computeIslandLedger, computeProjectLedger, getCrate, heldCratesForTre, pendingApprovalsForTre } from "../sim/selectors.ts";
 import { clear, el, setText } from "./dom.ts";
 
 /**
@@ -44,6 +44,8 @@ function contextLines(object: THREE.Object3D, options: InspectorPanelOptions): s
 }
 
 const AUTOMATIC_DECISION_HINT = "This decision is automatic right now — toggle ⚖ in the top bar to make it yourself.";
+/** How many of the most recently submitted projects the quay's own list shows at once — a queue-style "+N more" cap, same reasoning as pendingApprovalsForTre/heldCratesForTre only ever showing the one at the front. */
+const QUAY_PROJECT_LIST_LIMIT = 8;
 
 export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOptions = {}): InspectorPanelHandle {
   const title = el("h2", { class: "fsa-inspector__title" });
@@ -83,6 +85,9 @@ export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOp
     else layer.classList.remove("is-open");
   }
   setVisible(false);
+
+  /** Which project's own per-island detail is expanded within the quay's list — reset to the default (the most recent project) every time show() opens a fresh entity; re-clicking a different row within an already-open quay view just re-renders in place, same pattern as the rest of this panel. */
+  let selectedProjectId: ProjectId | null = null;
 
   /** Gate 1's own inbox: the oldest project still awaiting this TRE's decision, if any. Re-invoked after every Approve/Refuse click so the panel immediately shows the next one waiting, without requiring a fresh click on the gate. */
   function renderGate1Decision(treId: TreId): void {
@@ -201,6 +206,74 @@ export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOp
     );
   }
 
+  /** One targeted island's own status within a project's own card at the quay — a name/Gate 1 line, then a Gate 2 summary line, stacked rather than a three-column row so it stays legible at this panel's own width. */
+  function projectIslandBlock(status: { treId: TreId; gate1Status: string; cratesHeld: number; cratesReleased: number; cratesRefused: number }): HTMLElement {
+    const treName = options.treNames?.get(status.treId) ?? status.treId;
+    const outputTotal = status.cratesHeld + status.cratesReleased + status.cratesRefused;
+    const outputSummary =
+      outputTotal === 0
+        ? "no results yet"
+        : `${status.cratesReleased} released · ${status.cratesRefused} refused · ${status.cratesHeld} pending`;
+    return el(
+      "div",
+      { class: "fsa-inspector__project-island-block" },
+      el("p", { class: "fsa-inspector__project-island-name", text: `${treName} — ${status.gate1Status}` }),
+      el("p", { class: "fsa-inspector__project-island-gate2", text: outputSummary }),
+    );
+  }
+
+  /**
+   * The researcher's own view at the quay — the mirror image of
+   * renderIslandLedger, and the one place in this panel allowed to read
+   * across islands (honesty rule 6's own stated exception, the same one
+   * releasedCratesForProject already exercises). See IDEAS.md "A
+   * project-centric view at the quay". A small list of the most recently
+   * submitted projects; clicking one expands its own per-island status
+   * below, without needing a fresh click on the quay itself.
+   */
+  function renderProjectsAtQuay(): void {
+    clear(decision);
+    if (!options.getState) return;
+    const state = options.getState();
+    if (state.projects.length === 0) return;
+
+    const recent = [...state.projects].sort((a, b) => b.submittedAtTick - a.submittedAtTick).slice(0, QUAY_PROJECT_LIST_LIMIT);
+    if (!selectedProjectId || !recent.some((p) => p.id === selectedProjectId)) {
+      selectedProjectId = recent[0]!.id;
+    }
+    const ledger = computeProjectLedger(state, selectedProjectId);
+    if (!ledger) return;
+
+    const listItems = recent.map((p) =>
+      el("button", {
+        class: `fsa-btn fsa-inspector__project-item${p.id === selectedProjectId ? " is-selected" : ""}`,
+        type: "button",
+        text: p.name,
+        on: {
+          click: () => {
+            selectedProjectId = p.id;
+            renderProjectsAtQuay();
+          },
+        },
+      }),
+    );
+
+    decision.append(
+      el(
+        "div",
+        { class: "fsa-inspector__decision-card" },
+        el("p", { class: "fsa-inspector__decision-lead", text: "Projects at the quay" }),
+        el("div", { class: "fsa-inspector__project-list" }, ...listItems),
+        el("p", { class: "fsa-inspector__project-detail-lead", text: `${ledger.name} — submitted by ${ledger.researcher}` }),
+        el("div", { class: "fsa-inspector__project-island-rows" }, ...ledger.perIsland.map(projectIslandBlock)),
+        el("p", { class: "fsa-inspector__ledger-note", text: `Released and gathered here so far: ${ledger.releasedCount}.` }),
+        state.projects.length > recent.length
+          ? el("p", { class: "fsa-inspector__decision-queue", text: `+${state.projects.length - recent.length} earlier projects not shown` })
+          : null,
+      ),
+    );
+  }
+
   function show(object: THREE.Object3D): void {
     const kind = object.userData.kind as string | undefined;
     const explanation = kind ? explanationForKind(kind) : undefined;
@@ -217,10 +290,12 @@ export function mountInspectorPanel(root: HTMLElement, options: InspectorPanelOp
     }
 
     clear(decision);
+    selectedProjectId = null;
     const treId = object.userData.treId as TreId | undefined;
     if (treId && kind === "GATE1_HARBOURMASTER") renderGate1Decision(treId);
     else if (treId && kind === "GATE2_INSPECTOR") renderGate2Decision(treId);
     else if (treId && kind === "ISLAND_LAND") renderIslandLedger(treId);
+    else if (kind === "MAINLAND_DOCK") renderProjectsAtQuay();
 
     setVisible(true);
   }

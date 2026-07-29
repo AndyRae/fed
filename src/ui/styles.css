@@ -497,6 +497,50 @@ body.fsa-touring #fsa-stats-panel:focus-within {
   font-style: italic;
 }
 
+.fsa-inspector__project-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fsa-inspector__project-item {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.fsa-inspector__project-item.is-selected {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--fsa-ink);
+}
+
+.fsa-inspector__project-detail-lead {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  border-top: 1px solid var(--fsa-line);
+  padding-top: 8px;
+}
+
+.fsa-inspector__project-island-rows {
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fsa-inspector__project-island-name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fsa-inspector__project-island-gate2 {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--fsa-ink-faint);
+}
+
 .fsa-inspector__context {
   margin: 8px 0 0;
   display: flex;

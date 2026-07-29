@@ -7,7 +7,14 @@ import {
   submitTask,
   tick,
 } from "./sim.ts";
-import { computeActivityStats, computeIslandLedger, heldCratesForTre, pendingApprovalsForTre, releasedIslandCountForProject } from "./selectors.ts";
+import {
+  computeActivityStats,
+  computeIslandLedger,
+  computeProjectLedger,
+  heldCratesForTre,
+  pendingApprovalsForTre,
+  releasedIslandCountForProject,
+} from "./selectors.ts";
 
 function freshState() {
   return createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }], pollIntervalTicks: 1 });
@@ -302,5 +309,75 @@ describe("computeIslandLedger", () => {
     expect(ledgerB.gate2Released).toBe(0);
     expect(ledgerB.gate2Refused).toBe(0);
     expect(ledgerB.tasksInFlight).toBe(0); // it reached AWAITING_OUTPUT_REVIEW, not in-flight
+  });
+});
+
+describe("computeProjectLedger", () => {
+  it("is undefined for a project that doesn't exist", () => {
+    expect(computeProjectLedger(freshState(), "no-such-project")).toBeUndefined();
+  });
+
+  it("shows PENDING for every targeted island before any Gate 1 decision, with nothing released yet", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "Dr. R", targetTreIds: ["tre-a", "tre-b"] });
+    const ledger = computeProjectLedger(state, "p1")!;
+    expect(ledger.name).toBe("P");
+    expect(ledger.researcher).toBe("Dr. R");
+    expect(ledger.releasedCount).toBe(0);
+    expect(ledger.perIsland).toEqual([
+      { treId: "tre-a", gate1Status: "PENDING", cratesHeld: 0, cratesReleased: 0, cratesRefused: 0 },
+      { treId: "tre-b", gate1Status: "PENDING", cratesHeld: 0, cratesReleased: 0, cratesRefused: 0 },
+    ]);
+  });
+
+  it("never lists an island the project didn't target", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    const ledger = computeProjectLedger(state, "p1")!;
+    expect(ledger.perIsland.map((s) => s.treId)).toEqual(["tre-a"]);
+  });
+
+  it("tracks each island's own Gate 1 decision independently, for the same project", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "REFUSED", decidedBy: "H" });
+
+    const ledger = computeProjectLedger(state, "p1")!;
+    const byIsland = new Map(ledger.perIsland.map((s) => [s.treId, s]));
+    expect(byIsland.get("tre-a")?.gate1Status).toBe("APPROVED");
+    expect(byIsland.get("tre-b")?.gate1Status).toBe("REFUSED");
+  });
+
+  it("tallies held/released/refused crates separately per island, and releasedCount across all of them", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = submitTask(state, { id: "ta", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "tb", projectId: "p1", treId: "tre-b" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 5);
+
+    const crateA = state.crates.find((c) => c.treId === "tre-a")!;
+    const crateB = state.crates.find((c) => c.treId === "tre-b")!;
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    state = decideOutputReview(state, { crateId: crateB.id, decision: "REFUSED" });
+
+    const ledger = computeProjectLedger(state, "p1")!;
+    const byIsland = new Map(ledger.perIsland.map((s) => [s.treId, s]));
+    expect(byIsland.get("tre-a")).toEqual({ treId: "tre-a", gate1Status: "APPROVED", cratesHeld: 0, cratesReleased: 1, cratesRefused: 0 });
+    expect(byIsland.get("tre-b")).toEqual({ treId: "tre-b", gate1Status: "APPROVED", cratesHeld: 0, cratesReleased: 0, cratesRefused: 1 });
+    expect(ledger.releasedCount).toBe(1);
+  });
+
+  it("never counts a different project's crates or approvals", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P1", researcher: "R", targetTreIds: ["tre-a"] });
+    state = submitProject(state, { id: "p2", name: "P2", researcher: "R", targetTreIds: ["tre-a"] });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p2", treId: "tre-a", decision: "REFUSED", decidedBy: "H" });
+
+    expect(computeProjectLedger(state, "p1")!.perIsland[0]!.gate1Status).toBe("APPROVED");
+    expect(computeProjectLedger(state, "p2")!.perIsland[0]!.gate1Status).toBe("REFUSED");
   });
 });

@@ -27,21 +27,6 @@ A quiet one-time toast the first time a visitor spots the whale, or finds
 a refused project, or opens night mode — small delight, cheap to build,
 rewards exploring free-roam instead of only tour-hopping.
 
-### A project-centric view at the quay
-
-The mirror image of the island ledger (now shipped — see CHANGELOG.md
-"An island's own ledger"), from the researcher's side: click a project
-(at the quay, or from a new researcher-facing list there) and see its
-status across every island it targeted — pending/approved/refused per
-island, released/refused per island, released count. This is the one
-place in the model that's *allowed* to read across islands (honesty rule
-6's own exception, already exercised by `releasedCratesForProject`), so
-it dramatizes "aggregation only happens after release, and only at the
-quay" as a real, inspectable view rather than a line in a tour's
-narration. TRE-centric and project-centric views of the same underlying
-`SimState`, from the two sides honesty rule 6 actually cares about
-keeping apart.
-
 ## World & federation patterns
 
 ### Other federation patterns, as a genuinely separate mode
