@@ -27,6 +27,48 @@ A quiet one-time toast the first time a visitor spots the whale, or finds
 a refused project, or opens night mode — small delight, cheap to build,
 rewards exploring free-roam instead of only tour-hopping.
 
+## The vault deserves more presence
+
+### Give the vault a real moment in the flagship tour
+
+"The data never moves" is the single most important claim this whole world
+makes, and honesty rule 2 already requires the vault to emit nothing — but
+no tour actually lingers on it. *The journey of a task* passes near the
+vault only incidentally on the way to the workshop; *the five safes* touches
+it for one stop among five. The vault should be a genuine focal point of the
+flagship tour, not a scenic backdrop: a stop that holds the camera on it
+specifically *while the ferry is out and the workshop is running*, so the
+contrast is the point — everything else in frame is moving (ferry crossing
+the wall outward, containers boarding, the workshop's own compute glow) and
+the vault, deliberately, is the one thing that visibly never does. The
+narration's plain register can say this outright ("data has not moved this
+whole time"); the detail register can point at honesty rule 2 by name. Worth
+doing without a new tour or new geometry — this is a stop re-ordering and a
+camera-dwell change to `tours.ts`, not a new feature.
+
+## Characters
+
+### Cuddly characters for the four human roles
+
+The researcher, the harbourmaster, the customs inspector, and an island
+citizen are already named roles the world depicts (a person, or "an
+unambiguous human-decision marker," per honesty rule 3) but currently read
+as abstract markers rather than anyone a visitor empathises with. Simple,
+friendly, distinct character designs for each — approachable enough that a
+governance reader forms a mental "who" for each decision rather than a
+"what" — could make the two human gates (rule 3) and the researcher's own
+stake in a result land emotionally, not just procedurally.
+
+Needs careful design before any geometry: this project's two audiences are
+real TRE managers and RSEs deciding whether to trust an architecture, and
+"cuddly" risks reading as unserious to that audience if it tips into
+mascot territory — PGSimCity's own character work (if any) is worth
+checking for precedent before designing from scratch. Also has to stay
+inside honesty rule 3's own requirement that both gates are humans with
+visible waiting: a character redesign must make the decision-makers more
+legible, not decorate over the fact that a queue is genuinely holding for
+a person to choose.
+
 ## World & federation patterns
 
 ### Other federation patterns, as a genuinely separate mode
