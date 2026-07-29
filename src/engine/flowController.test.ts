@@ -44,6 +44,28 @@ function twoIslandWorldWithCollectedTask() {
   return state;
 }
 
+/** One project targeting both islands, each with its own sealed crate awaiting output review — the setup the aggregation-payoff tests need to release from more than one island. */
+function twoIslandProjectReadyForReview() {
+  let state = createInitialSimState({
+    seed: 1,
+    tres: [
+      { id: "tre-a", name: "Isle A" },
+      { id: "tre-b", name: "Isle B" },
+    ],
+    pollIntervalTicks: 1,
+  });
+  state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+  state = submitTask(state, { id: "ta", projectId: "p1", treId: "tre-a" });
+  state = submitTask(state, { id: "tb", projectId: "p1", treId: "tre-b" });
+  state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+  state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "APPROVED", decidedBy: "H" });
+  // pollIntervalTicks=1: tick1 collects (QUEUED), 2=INITIALIZING, 3=RUNNING,
+  // 4=COMPLETE, 5=AWAITING_OUTPUT_REVIEW (crate sealed) — for both islands
+  // at once, since they poll and advance independently but on the same tick.
+  state = tick(state, 5);
+  return state;
+}
+
 describe("createFlowController", () => {
   it("docks a ferry mesh at each island's real dock position on creation", () => {
     const { host } = createFakeHost();
@@ -283,6 +305,130 @@ describe("createFlowController", () => {
       if (o.userData.kind === "CRATE") crates++;
     });
     expect(crates).toBe(0);
+  });
+});
+
+describe("the aggregation payoff at the quay (IDEAS.md/CHANGELOG.md 'a visible moment when aggregation actually happens')", () => {
+  function countBurstParticles(host: FlowSceneHost): number {
+    let n = 0;
+    host.scene.traverse((o) => {
+      if (o.userData.aggregationBurst) n++;
+    });
+    return n;
+  }
+
+  it("does not play when only one island has released a result for a project", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ]);
+    let state = twoIslandProjectReadyForReview();
+    createFlowController(host, islands, () => state);
+
+    const crateA = getCrateForTask(state, "ta")!;
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    for (let i = 0; i < 30; i++) frame(0.1); // the whole release trip, plus room to spare
+    expect(countBurstParticles(host)).toBe(0);
+  });
+
+  it("plays only once the second island's own result actually arrives at the quay, not the moment it's decided", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ]);
+    let state = twoIslandProjectReadyForReview();
+    createFlowController(host, islands, () => state);
+
+    const crateA = getCrateForTask(state, "ta")!;
+    const crateB = getCrateForTask(state, "tb")!;
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    for (let i = 0; i < 30; i++) frame(0.1);
+    state = decideOutputReview(state, { crateId: crateB.id, decision: "RELEASED" });
+
+    // Decided, but the crate has barely left this island's own customs hall
+    // — the payoff must not fire before it visually reaches the quay.
+    frame(0.05);
+    expect(countBurstParticles(host)).toBe(0);
+
+    // Just past the release trip's own duration (CRATE_RELEASE_TRIP_SECONDS)
+    // — checked promptly, before the burst's own AGGREGATION_BURST_SECONDS
+    // has had time to fully fade it back out again.
+    for (let i = 0; i < 17; i++) frame(0.1);
+    expect(countBurstParticles(host)).toBeGreaterThan(0);
+  });
+
+  it("never plays a second time for the same project once a third island's release arrives", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+      { id: "tre-c", name: "C" },
+    ]);
+    let state = createInitialSimState({
+      seed: 1,
+      tres: [
+        { id: "tre-a", name: "A" },
+        { id: "tre-b", name: "B" },
+        { id: "tre-c", name: "C" },
+      ],
+      pollIntervalTicks: 1,
+    });
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b", "tre-c"] });
+    state = submitTask(state, { id: "ta", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "tb", projectId: "p1", treId: "tre-b" });
+    state = submitTask(state, { id: "tc", projectId: "p1", treId: "tre-c" });
+    for (const treId of ["tre-a", "tre-b", "tre-c"]) {
+      state = decideProjectApproval(state, { projectId: "p1", treId, decision: "APPROVED", decidedBy: "H" });
+    }
+    state = tick(state, 5);
+
+    createFlowController(host, islands, () => state);
+
+    const crateA = getCrateForTask(state, "ta")!;
+    const crateB = getCrateForTask(state, "tb")!;
+    const crateC = getCrateForTask(state, "tc")!;
+
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    for (let i = 0; i < 30; i++) frame(0.1);
+    state = decideOutputReview(state, { crateId: crateB.id, decision: "RELEASED" });
+    // Just past arrival, checked promptly — see the previous test's own comment.
+    for (let i = 0; i < 17; i++) frame(0.1);
+    const afterSecondIsland = countBurstParticles(host);
+    expect(afterSecondIsland).toBeGreaterThan(0);
+
+    // Let the first burst fully finish and clear...
+    for (let i = 0; i < 20; i++) frame(0.1);
+    expect(countBurstParticles(host)).toBe(0);
+
+    // ...then a third island's own release arrives. Still real, but this
+    // project already had its one moment — no second burst.
+    state = decideOutputReview(state, { crateId: crateC.id, decision: "RELEASED" });
+    for (let i = 0; i < 30; i++) frame(0.1);
+    expect(countBurstParticles(host)).toBe(0);
+  });
+
+  it("clears any active burst on dispose", () => {
+    const { host, frame } = createFakeHost();
+    const islands = computeIslandGeometries([
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ]);
+    let state = twoIslandProjectReadyForReview();
+    const controller = createFlowController(host, islands, () => state);
+
+    const crateA = getCrateForTask(state, "ta")!;
+    const crateB = getCrateForTask(state, "tb")!;
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    for (let i = 0; i < 30; i++) frame(0.1);
+    state = decideOutputReview(state, { crateId: crateB.id, decision: "RELEASED" });
+    // Just past arrival, checked promptly — see the earlier tests' own comment.
+    for (let i = 0; i < 17; i++) frame(0.1);
+    expect(countBurstParticles(host)).toBeGreaterThan(0);
+
+    controller.dispose();
+    expect(countBurstParticles(host)).toBe(0);
   });
 });
 

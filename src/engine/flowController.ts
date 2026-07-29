@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { theme } from "../core/theme.ts";
-import type { CrateId, SimState, TreId } from "../core/types.ts";
-import { egressPath, ferryPath, type IslandGeometry, SEA_LEVEL_Y, submissionPath, type Vec3 } from "../world/layout.ts";
+import type { CrateId, ProjectId, SimState, TreId } from "../core/types.ts";
+import { createRng } from "../sim/rng.ts";
+import { releasedIslandCountForProject } from "../sim/selectors.ts";
+import { egressPath, ferryPath, type IslandGeometry, mainlandGeometry, SEA_LEVEL_Y, submissionPath, type Vec3 } from "../world/layout.ts";
 import { GROUND_HEIGHT } from "../world/island.ts";
 import { MAINLAND_GROUND_HEIGHT } from "../world/mainland.ts";
 import { pointAlongPath } from "../world/pathInterpolation.ts";
@@ -57,6 +59,39 @@ const WAKE_SAMPLE_INTERVAL_SECONDS = 0.12;
 const WAKE_LIFETIME_SECONDS = 1.1;
 const WAKE_HEIGHT = SEA_LEVEL_Y + 0.04;
 
+// The narrative payoff CLAUDE.md's own honesty rule already promises but
+// nothing used to render: "Aggregation of results happens at the
+// researcher's quay, after release, and is shown there." A one-time flourish
+// at the quay, the instant a project's released results first converge from
+// more than one island — never before that (a single island's own result
+// arriving is not aggregation, just a release), and never more than once per
+// project (a third, fourth, ... island reporting in afterwards is still real
+// but is no longer the moment the story lands). Two layered elements, both
+// reusing crate.body — this is a celebration of released crates converging,
+// not a new place or a new kind of thing, so no new semantic colour: a
+// single ground-level ring (pushed into the same `pulses` array the gate
+// decisions already use, just bigger and differently coloured) for "a
+// decision-shaped event happened here", plus a burst of small motes rising
+// and drifting apart for the "science happens" flourish itself. Both are
+// purely decorative at the mainland — never inside a wall, never implying
+// anything travelled between islands (honesty rule 6: islands stay mutually
+// invisible; only the quay, after release, ever reads across them).
+const AGGREGATION_RING_HEIGHT = MAINLAND_GROUND_HEIGHT + 0.1;
+const AGGREGATION_RING_INNER_RADIUS = 0.9;
+const AGGREGATION_RING_OUTER_RADIUS = 1.6;
+const AGGREGATION_BURST_HEIGHT = MAINLAND_GROUND_HEIGHT + 0.4;
+const AGGREGATION_BURST_SECONDS = 1.3;
+const AGGREGATION_BURST_PARTICLE_COUNT = 10;
+const AGGREGATION_BURST_MIN_SPEED = 1.6;
+const AGGREGATION_BURST_SPEED_RANGE = 1.4;
+const AGGREGATION_BURST_MIN_RISE = 2.2;
+const AGGREGATION_BURST_RISE_RANGE = 1.2;
+const AGGREGATION_BURST_GRAVITY = 3.5; // decorative arc, not physically tuned
+// A fixed seed, like whaleController.ts's own — decorative motion, not a
+// protocol value, but still deterministic given the same event history
+// (CLAUDE.md "Simulation model": a run is fully reproducible from a seed).
+const AGGREGATION_BURST_SEED = 4021;
+
 /**
  * The minimal surface the flow controller needs from the renderer. Narrow
  * on purpose: `Engine` (src/engine/renderer.ts) satisfies this
@@ -95,6 +130,21 @@ interface Tween {
 interface DecisionPulse {
   readonly mesh: THREE.Mesh;
   readonly material: THREE.MeshStandardMaterial;
+  elapsed: number;
+}
+
+/** One rising, drifting mote in an AggregationBurst — outward and upward only, at a fixed point (the quay), never a waypoint on any path. */
+interface BurstParticle {
+  readonly mesh: THREE.Mesh;
+  readonly material: THREE.MeshStandardMaterial;
+  readonly vx: number;
+  readonly vy: number;
+  readonly vz: number;
+}
+
+/** The one-time "science happens" flourish at the quay — see the AGGREGATION_* constants' own doc comment. */
+interface AggregationBurst {
+  readonly particles: readonly BurstParticle[];
   elapsed: number;
 }
 
@@ -264,6 +314,23 @@ function buildRingMesh(color: number, innerRadius: number, outerRadius: number):
   return mesh;
 }
 
+/** One mote in an AggregationBurst. No `userData.kind` — purely decorative, never resolvable under the picker — but userData.aggregationBurst identifies it for tests, same precedent as userData.wakeTreId. */
+function buildBurstParticleMesh(): THREE.Mesh {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 8, 6),
+    new THREE.MeshStandardMaterial({
+      color: theme.crate.body,
+      emissive: theme.crate.body,
+      emissiveIntensity: 1.1,
+      transparent: true,
+      opacity: 0,
+      roughness: 0.3,
+    }),
+  );
+  mesh.userData.aggregationBurst = true;
+  return mesh;
+}
+
 /**
  * Animates ferries, containers, crates, submissions, and two kinds of
  * stationary light — in response to real SimState events, never driving
@@ -288,7 +355,11 @@ function buildRingMesh(color: number, innerRadius: number, outerRadius: number):
  *  - OUTPUT_REVIEW_DECIDED: a RELEASED crate continues on from the customs
  *    hall, across the water, directly to the researcher's quay. A REFUSED
  *    crate is left exactly where it stopped — honesty rule 5, refusal is a
- *    first-class, visible path, not a disappearance.
+ *    first-class, visible path, not a disappearance. The instant a RELEASED
+ *    crate that pushes a project's results past one island arrives at the
+ *    quay, a one-time ring-and-burst plays there — the honest rendering of
+ *    "aggregation happens at the researcher's quay, after release" (see the
+ *    AGGREGATION_* constants' own doc comment).
  *
  * Every frame, independent of events: while any of an island's tasks is
  * RUNNING, the vault and the workshop glow together — a synchronised pair
@@ -363,6 +434,12 @@ export function createFlowController(
 
   const tweens: Tween[] = [];
   const pulses: DecisionPulse[] = [];
+  const aggregationBursts: AggregationBurst[] = [];
+  const burstRng = createRng(AGGREGATION_BURST_SEED);
+  // Every projectId that has already had its one-time aggregation flourish
+  // — never re-fired for the same project once its results have converged
+  // from two or more islands, however many further islands report in after.
+  const celebratedProjects = new Set<ProjectId>();
   let elapsedTotal = 0;
   // A watermark, not a cursor: state sources that move non-monotonically
   // (a tour stepping backward, then forward again) must never re-fire an
@@ -418,6 +495,40 @@ export function createFlowController(
     mesh.position.set(position.x, position.y + DECISION_PULSE_HEIGHT, position.z);
     host.scene.add(mesh);
     pulses.push({ mesh, material, elapsed: 0 });
+  }
+
+  /** The ground-level half of the aggregation payoff — reuses the same DecisionPulse mechanics (updatePulses), just bigger and in crate.body rather than gate amber, so it reads as a related but distinct kind of event. */
+  function spawnAggregationRing(): void {
+    const mesh = buildRingMesh(theme.crate.body, AGGREGATION_RING_INNER_RADIUS, AGGREGATION_RING_OUTER_RADIUS);
+    const material = mesh.material as THREE.MeshStandardMaterial;
+    material.opacity = 0.9;
+    const dock = mainlandGeometry.quayDock;
+    mesh.position.set(dock.x, dock.y + AGGREGATION_RING_HEIGHT, dock.z);
+    host.scene.add(mesh);
+    pulses.push({ mesh, material, elapsed: 0 });
+  }
+
+  /** The rising, drifting half of the aggregation payoff — see the AGGREGATION_* constants' own doc comment for why this is the one moment this project ever gets. */
+  function spawnAggregationBurst(): void {
+    const dock = mainlandGeometry.quayDock;
+    const particles: BurstParticle[] = [];
+    for (let i = 0; i < AGGREGATION_BURST_PARTICLE_COUNT; i++) {
+      const mesh = buildBurstParticleMesh();
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      material.opacity = 0.95;
+      mesh.position.set(dock.x, dock.y + AGGREGATION_BURST_HEIGHT, dock.z);
+      host.scene.add(mesh);
+      const angle = burstRng() * Math.PI * 2;
+      const speed = AGGREGATION_BURST_MIN_SPEED + burstRng() * AGGREGATION_BURST_SPEED_RANGE;
+      particles.push({
+        mesh,
+        material,
+        vx: Math.cos(angle) * speed,
+        vz: Math.sin(angle) * speed,
+        vy: AGGREGATION_BURST_MIN_RISE + burstRng() * AGGREGATION_BURST_RISE_RANGE,
+      });
+    }
+    aggregationBursts.push({ particles, elapsed: 0 });
   }
 
   function handleNewEvents(state: SimState): void {
@@ -479,6 +590,18 @@ export function createFlowController(
         const geometry = islands.get(crate.userData.treId as TreId);
         if (geometry) spawnDecisionPulse(geometry.customsHall);
         if (event.status === "RELEASED" && geometry) {
+          // Decided now, at event time (so it can never depend on how many
+          // real seconds the crate's own tween below takes to finish), but
+          // only actually shown once that crate visually arrives — see the
+          // onComplete callback just below.
+          const releasedCrate = state.crates.find((c) => c.id === event.crateId);
+          let celebrateOnArrival = false;
+          if (releasedCrate && !celebratedProjects.has(releasedCrate.projectId)) {
+            if (releasedIslandCountForProject(state, releasedCrate.projectId) >= 2) {
+              celebratedProjects.add(releasedCrate.projectId);
+              celebrateOnArrival = true;
+            }
+          }
           const releasePath = egressPath(geometry).slice(1); // customs hall -> sea -> the researcher's quay
           pushTween({
             mesh: crate,
@@ -489,6 +612,10 @@ export function createFlowController(
             onComplete: () => {
               host.scene.remove(crate);
               allCrateMeshes.delete(crate);
+              if (celebrateOnArrival) {
+                spawnAggregationRing();
+                spawnAggregationBurst();
+              }
             },
           });
         }
@@ -590,6 +717,30 @@ export function createFlowController(
     }
   }
 
+  /** Advances every active AggregationBurst: rise, drift outward, gently arc under AGGREGATION_BURST_GRAVITY, and fade — disposing each burst's particles once its own duration elapses. */
+  function updateAggregationBursts(deltaSeconds: number): void {
+    for (let i = aggregationBursts.length - 1; i >= 0; i--) {
+      const burst = aggregationBursts[i]!;
+      burst.elapsed += deltaSeconds;
+      const t = burst.elapsed / AGGREGATION_BURST_SECONDS;
+      if (t >= 1) {
+        for (const particle of burst.particles) {
+          host.scene.remove(particle.mesh);
+          particle.mesh.geometry.dispose();
+          particle.material.dispose();
+        }
+        aggregationBursts.splice(i, 1);
+        continue;
+      }
+      for (const particle of burst.particles) {
+        particle.mesh.position.x += particle.vx * deltaSeconds;
+        particle.mesh.position.z += particle.vz * deltaSeconds;
+        particle.mesh.position.y += (particle.vy - AGGREGATION_BURST_GRAVITY * burst.elapsed) * deltaSeconds;
+        particle.material.opacity = 0.95 * (1 - t);
+      }
+    }
+  }
+
   const unsubscribe = host.onBeforeRender((deltaSeconds) => {
     elapsedTotal += deltaSeconds;
     const state = getState();
@@ -597,6 +748,7 @@ export function createFlowController(
     updateComputeGlows(state);
     updateGateWaitingGlows(state);
     updatePulses(deltaSeconds);
+    updateAggregationBursts(deltaSeconds);
 
     for (let i = tweens.length - 1; i >= 0; i--) {
       const tween = tweens[i]!;
@@ -636,6 +788,15 @@ export function createFlowController(
         pulse.material.dispose();
       }
       pulses.length = 0;
+      for (const burst of aggregationBursts) {
+        for (const particle of burst.particles) {
+          host.scene.remove(particle.mesh);
+          particle.mesh.geometry.dispose();
+          particle.material.dispose();
+        }
+      }
+      aggregationBursts.length = 0;
+      celebratedProjects.clear();
       for (const glow of computeGlows.values()) {
         host.scene.remove(glow.vaultMesh);
         host.scene.remove(glow.workshopMesh);

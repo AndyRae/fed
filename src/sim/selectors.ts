@@ -35,6 +35,20 @@ export function releasedCratesForProject(state: SimState, projectId: ProjectId):
   return state.crates.filter((c) => c.projectId === projectId && c.status === "RELEASED");
 }
 
+/**
+ * How many distinct TREs have released a result for this project so far —
+ * the real measure of whether this project's aggregation has actually
+ * become cross-island yet, versus just one island's own output. Used by
+ * `src/engine/flowController.ts` to trigger a one-time visual payoff the
+ * moment a project's results first converge from more than one island
+ * (IDEAS.md/CHANGELOG.md "A visible moment when aggregation actually
+ * happens") — reads only released crates, same honesty-rule-6 boundary as
+ * releasedCratesForProject above.
+ */
+export function releasedIslandCountForProject(state: SimState, projectId: ProjectId): number {
+  return new Set(releasedCratesForProject(state, projectId).map((c) => c.treId)).size;
+}
+
 const IN_FLIGHT_TASK_STATUSES: readonly TaskStatus[] = ["QUEUED", "INITIALIZING", "RUNNING"];
 /** A task counts as "run" once it has actually reached COMPLETE — whatever the workshop produced, regardless of what Gate 2 later decides about it. */
 const RAN_TASK_STATUSES: readonly TaskStatus[] = ["COMPLETE", "AWAITING_OUTPUT_REVIEW", "RELEASED", "OUTPUT_REFUSED"];

@@ -7,10 +7,21 @@ import {
   submitTask,
   tick,
 } from "./sim.ts";
-import { computeActivityStats, heldCratesForTre, pendingApprovalsForTre } from "./selectors.ts";
+import { computeActivityStats, heldCratesForTre, pendingApprovalsForTre, releasedIslandCountForProject } from "./selectors.ts";
 
 function freshState() {
   return createInitialSimState({ seed: 1, tres: [{ id: "tre-a", name: "A" }], pollIntervalTicks: 1 });
+}
+
+function twoIslandState() {
+  return createInitialSimState({
+    seed: 1,
+    tres: [
+      { id: "tre-a", name: "A" },
+      { id: "tre-b", name: "B" },
+    ],
+    pollIntervalTicks: 1,
+  });
 }
 
 describe("computeActivityStats", () => {
@@ -155,5 +166,77 @@ describe("heldCratesForTre", () => {
     const crateId = state.crates[0]!.id;
     state = decideOutputReview(state, { crateId, decision: "RELEASED" });
     expect(heldCratesForTre(state, "tre-a")).toEqual([]);
+  });
+});
+
+describe("releasedIslandCountForProject", () => {
+  it("is zero before any crate is released", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    expect(releasedIslandCountForProject(state, "p1")).toBe(0);
+  });
+
+  it("counts one island's own released crate, even if it releases more than one", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a"] });
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "t2", projectId: "p1", treId: "tre-a" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 5);
+    for (const crate of state.crates) {
+      state = decideOutputReview(state, { crateId: crate.id, decision: "RELEASED" });
+    }
+    expect(releasedIslandCountForProject(state, "p1")).toBe(1);
+  });
+
+  it("reaches 2 only once both islands have each released their own result for the same project", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "t2", projectId: "p1", treId: "tre-b" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 5);
+
+    const crateA = state.crates.find((c) => c.treId === "tre-a")!;
+    const crateB = state.crates.find((c) => c.treId === "tre-b")!;
+
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    expect(releasedIslandCountForProject(state, "p1")).toBe(1);
+
+    state = decideOutputReview(state, { crateId: crateB.id, decision: "RELEASED" });
+    expect(releasedIslandCountForProject(state, "p1")).toBe(2);
+  });
+
+  it("never counts a refused crate's island", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P", researcher: "R", targetTreIds: ["tre-a", "tre-b"] });
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "t2", projectId: "p1", treId: "tre-b" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-b", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 5);
+
+    const crateA = state.crates.find((c) => c.treId === "tre-a")!;
+    const crateB = state.crates.find((c) => c.treId === "tre-b")!;
+    state = decideOutputReview(state, { crateId: crateA.id, decision: "RELEASED" });
+    state = decideOutputReview(state, { crateId: crateB.id, decision: "REFUSED" });
+    expect(releasedIslandCountForProject(state, "p1")).toBe(1);
+  });
+
+  it("never counts a different project's released islands", () => {
+    let state = twoIslandState();
+    state = submitProject(state, { id: "p1", name: "P1", researcher: "R", targetTreIds: ["tre-a"] });
+    state = submitProject(state, { id: "p2", name: "P2", researcher: "R", targetTreIds: ["tre-b"] });
+    state = submitTask(state, { id: "t1", projectId: "p1", treId: "tre-a" });
+    state = submitTask(state, { id: "t2", projectId: "p2", treId: "tre-b" });
+    state = decideProjectApproval(state, { projectId: "p1", treId: "tre-a", decision: "APPROVED", decidedBy: "H" });
+    state = decideProjectApproval(state, { projectId: "p2", treId: "tre-b", decision: "APPROVED", decidedBy: "H" });
+    state = tick(state, 5);
+    for (const crate of state.crates) {
+      state = decideOutputReview(state, { crateId: crate.id, decision: "RELEASED" });
+    }
+    expect(releasedIslandCountForProject(state, "p1")).toBe(1);
+    expect(releasedIslandCountForProject(state, "p2")).toBe(1);
   });
 });

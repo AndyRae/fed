@@ -38,18 +38,27 @@ if (!container) {
 // rebuildIslandCount below and IDEAS.md "Toggle how many islands there
 // are") — buildWorld/computeIslandGeometries/the flow controller are all
 // already generic over an arbitrary TRE count. DEMO_TRES is always a
-// front slice of this list, so "tre-a" is present at every count.
+// front slice of this list, so "tre-a" is present at every count. Named
+// for genuinely obscure Hebridean islands rather than the famous ones —
+// Mingulay and Scarp were both abandoned by their last residents (1912
+// and 1971), Taransay only reads as familiar because of a reality show,
+// and Gometra, Oronsay, and Sandray stay off most people's map entirely.
 const ISLAND_ROSTER: readonly { id: TreId; name: string }[] = [
-  { id: "tre-a", name: "Isle of Ailsa" },
-  { id: "tre-b", name: "Isle of Barra" },
-  { id: "tre-c", name: "Isle of Coll" },
-  { id: "tre-d", name: "Isle of Eigg" },
-  { id: "tre-e", name: "Isle of Foula" },
-  { id: "tre-f", name: "Isle of Gigha" },
+  { id: "tre-a", name: "Isle of Mingulay" },
+  { id: "tre-b", name: "Isle of Scarp" },
+  { id: "tre-c", name: "Isle of Taransay" },
+  { id: "tre-d", name: "Isle of Gometra" },
+  { id: "tre-e", name: "Isle of Oronsay" },
+  { id: "tre-f", name: "Isle of Sandray" },
 ];
 const MIN_ISLANDS = 1;
 const MAX_ISLANDS = ISLAND_ROSTER.length;
-const DEFAULT_ISLAND_COUNT = 3;
+// Two, not one: the aggregation payoff (see IDEAS.md/CHANGELOG.md "A
+// visible moment when aggregation actually happens") only ever has
+// anything to show once a project has been approved on more than one
+// island, so the default world should already be able to show it without
+// the visitor needing to touch the slider first.
+const DEFAULT_ISLAND_COUNT = 2;
 
 let DEMO_TRES = ISLAND_ROSTER.slice(0, DEFAULT_ISLAND_COUNT);
 

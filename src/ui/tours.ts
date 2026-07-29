@@ -1,7 +1,7 @@
 import { createInitialSimState } from "../sim/sim.ts";
 import type { Tour } from "./tourTypes.ts";
 
-const TRE_A = { id: "tre-a", name: "Isle of Ailsa" };
+const TRE_A = { id: "tre-a", name: "Isle of Mingulay" };
 
 /**
  * The flagship tour: submit → safe people/safe project approval → ferry
@@ -74,7 +74,7 @@ export const journeyOfATaskTour: Tour = {
           projectId: "proj-diabetes-cohort",
           treId: "tre-a",
           decision: "APPROVED",
-          decidedBy: "Harbourmaster of Isle of Ailsa",
+          decidedBy: "Harbourmaster of Isle of Mingulay",
         },
       },
     },
@@ -216,7 +216,7 @@ export const theResultThatNeverLeftTour: Tour = {
           projectId: "proj-imaging-study",
           treId: "tre-a",
           decision: "APPROVED",
-          decidedBy: "Harbourmaster of Isle of Ailsa",
+          decidedBy: "Harbourmaster of Isle of Mingulay",
         },
       },
     },

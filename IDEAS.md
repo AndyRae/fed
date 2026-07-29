@@ -29,17 +29,6 @@ doing if the whale pattern proves popular and a second one is wanted.
 
 ## Narrative payoff
 
-### A visible moment when aggregation actually happens
-
-The stats panel shows running totals, but there's no single moment where
-the story lands. A brief visual flourish at the researcher's quay when a
-project's results from multiple TREs actually combine — something that
-briefly makes felt what `SIMPLIFICATIONS.md`'s "aggregation is a read, not
-a stage" describes abstractly — would cash out "isolated + summary" as an
-experienced moment instead of an explained fact. Needs at least two
-islands approving the same project to be meaningful — the islands slider
-(CHANGELOG.md) makes that easy to arrange now, just drag it above 1.
-
 ### Discovery rewards
 
 A quiet one-time toast the first time a visitor spots the whale, or finds
